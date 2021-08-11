@@ -1,0 +1,20 @@
+
+bj_zy_1j.sgk
+size: 237,163
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+dg_xj
+  rotate: false
+  xy: 1, 13
+  size: 154, 149
+  orig: 154, 149
+  offset: 0, 0
+  index: -1
+xg_xj
+  rotate: false
+  xy: 157, 1
+  size: 79, 161
+  orig: 79, 161
+  offset: 0, 0
+  index: -1

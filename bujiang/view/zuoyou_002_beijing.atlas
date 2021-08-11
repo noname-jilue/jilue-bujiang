@@ -1,0 +1,48 @@
+
+zuoyou_002_beijing.sgk
+size: 237,560
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+sj
+  rotate: false
+  xy: 1, 367
+  size: 215, 192
+  orig: 215, 192
+  offset: 0, 0
+  index: -1
+sj_01
+  rotate: false
+  xy: 1, 133
+  size: 123, 115
+  orig: 123, 115
+  offset: 0, 0
+  index: -1
+sj_02
+  rotate: false
+  xy: 1, 250
+  size: 131, 115
+  orig: 131, 115
+  offset: 0, 0
+  index: -1
+sj_03
+  rotate: true
+  xy: 1, 1
+  size: 130, 108
+  orig: 130, 108
+  offset: 0, 0
+  index: -1
+sj_04
+  rotate: true
+  xy: 111, 18
+  size: 113, 104
+  orig: 113, 104
+  offset: 0, 0
+  index: -1
+sj_05
+  rotate: false
+  xy: 126, 149
+  size: 110, 99
+  orig: 110, 99
+  offset: 0, 0
+  index: -1
