@@ -1,6 +1,6 @@
 game.import('extension', function (lib, game, ui, get, ai, _status) {
     const internals = {
-        show() {
+        async show() {
             console.log('bujiang show');
             if (_status.dragged) return;
             ui.click.touchpop();
@@ -44,9 +44,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             this.panel = {
                 node: mainPanel,
             }
+            // show loading text
+            this.config.skillRequirement = await this.config.skillRequirement;
             this.start();
             // lib.setHover(mainPanel, () => {});
             // const idb = await import('./modules/index.js');
+        },
+        config: {
+            skillRequirement: null,
         },
         async save() {
             if (this._isSaving) {
@@ -96,7 +101,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     orbData[i][j] = this.data.orbs[w];
                 }
             }
-            console.log(orbData);
+            // console.log(orbData);
             let result = {
                 colors: [0, 0, 0, 0],
                 types: 0,
@@ -145,8 +150,37 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             solve([orbData[0][0], orbData[1][1],orbData[2][2]]);
             solve([orbData[0][2], orbData[1][1],orbData[2][0]]);
-            /** FIXME: implement color requirements */
+            let unfulfilledSkills = [];
+            for (let sk of result.skills) {
+                let req = this.getSkillRequirement(sk);
+                if (req.some((rn, i) => rn > result.colors[i])) {
+                    unfulfilledSkills.push(sk);
+                }
+            }
+            result.skills.removeArray(unfulfilledSkills);
             return result;
+        },
+        getSkillRequirement(name) {
+            let temp = this.config.skillRequirement[name];
+            if (temp) {
+                return temp;
+            }
+            /** TODO: refine */
+            temp = [0, 0, 0, 0];
+            let gp = new Set();
+            for (const i in lib.character) {
+                const info = lib.character[i];
+                if (info[3].includes(name)) {
+                    gp.add(info[1]);
+                }
+            }
+            if (gp.has('shu')) temp[0] += 1;
+            if (gp.has('qun')) temp[1] += 1;
+            if (gp.has('wu')) temp[2] += 1;
+            if (gp.has('wei')) temp[3] += 1;
+            if (gp.has('jin')) temp[3] += 1;
+            this.config.skillRequirement[name] = temp;
+            return temp;
         },
         get bonusReady() {
             /** FIXME: move to daily bonus module as sub function */
@@ -226,11 +260,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
     return {
         name: '部将',
         content: function (config, pack) {
-            window._bujiang = {
-                show() {
-                    internals.show();
-                }
-            }
+            internals.config.skillRequirement = new Promise((resolve, reject) => {
+                lib.init.json(
+                    lib.assetURL + 'extension/部将/skillRequirement.json',
+                    o => resolve(o),
+                    () => reject()
+                );
+              });
             if (config.shortcut) {
                 lib.arenaReady.push(() => {
                     ui.config2.addEventListener('pointerup', evt => {
@@ -256,6 +292,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             // debug
             window.bujiangI = internals;
+            bujiangI.config.skillRequirement.then(o => {bujiangI.config.skillRequirement = o;});
+            bujiangI.setupData();
         },
         precontent: function (config) {
             if (!config.enable) {
