@@ -191,25 +191,57 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             result.skills.removeArray(unfulfilledSkills);
             return result;
         },
+        // TODO: caching
         getSkillRequirement(name) {
             let temp = this.config.skillRequirement[name];
             if (temp) {
                 return temp;
             }
-            /** TODO: refine */
+            /** TODO: refine based on drawing etc*/
             temp = [0, 0, 0, 0];
+            /** owner group */
             let gp = new Set();
+            let raN = this.utils.seededRand(name, 27);
+            /** skill strength estimation */
+            let strength = [];
+            // TODO: use fixed character list
             for (const i in lib.character) {
                 const info = lib.character[i];
+                if (info[1] == 'shen' || i.startsWith('boss')) continue;
                 if (info[3].includes(name)) {
                     gp.add(info[1]);
+                    strength.push(get.rank(i, true) / (info[3].length + 0.2))
                 }
             }
+            if (!gp.size) return [1,1,1,1];
+            strength = strength.reduce((a,b) => a + b) / strength.length;
+            strength = Math.floor(strength);
             if (gp.has('shu')) temp[0] += 1;
             if (gp.has('qun')) temp[1] += 1;
             if (gp.has('wu')) temp[2] += 1;
             if (gp.has('wei')) temp[3] += 1;
             if (gp.has('jin')) temp[3] += 1;
+            let tempSum = temp.reduce((a,b) => a+b);
+            if (strength > tempSum) {
+                if (strength > 5 && tempSum <= 2) {
+                    temp[temp.indexOf(1)] = strength;
+                } else {
+                    strength -= tempSum;
+                    var mainId = temp.indexOf(1), nextId = temp.lastIndexOf(1);
+                    temp[mainId] += Math.floor(strength / 2);
+                    strength -= Math.floor(strength / 2);
+                    if (mainId != nextId && strength) {
+                        temp[nextId] += 1;
+                        --strength;
+                    }
+                    while(strength--) {
+                        let nxt = raN % 3;
+                        if (nxt >= mainId) ++nxt;
+                        ++temp[nxt];
+                        raN = Math.floor(raN);
+                    }
+                }
+            }
             this.config.skillRequirement[name] = temp;
             return temp;
         },
@@ -324,11 +356,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let win2 = coeff2 && Math.random() < coeff2;
                     if (win1) {
                         ++cnt1;
-                        coeff1 /= (cnt + 1);
+                        coeff1 /= (cnt1 + 1);
                     }
                     if (win2) {
                         ++cnt2;
-                        coeff2 /= (cnt + 1);
+                        coeff2 /= (cnt2 + 1);
                     }
                     if (!cnt1 && !cnt2 && revive) {
                         revive = false;
@@ -341,10 +373,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (!this._allSkills) {
                     let skills = [];
                     for (let c in lib.character) {
-                        if (lib.filter.characterDisabled(c))continue;
+                        if (lib.filter.characterDisabled(c)) continue;
                         for (let sk of lib.character[c][3]) {
                             if (lib.skill[sk] && !lib.skill[sk].zhuSkill && !lib.skill[sk].juexingji && !lib.skill[sk].unique &&
-                                lib.translate[sk] && lib.translate[sk+'_info'])
+                                lib.translate[sk] && lib.translate[sk + '_info'])
                                 skills.push(sk);
                         }
                     }
@@ -414,6 +446,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             this.save();
         },
         gainOrbs(orbs) {
+            console.log('gain orbs', orbs);
             if (Array.isArray(orbs)) {
                 var ids = [];
                 for (let orb of orbs) {
@@ -487,6 +520,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     ++i;
                 }
             },
+            seededRand(str, need = 27) {
+                for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
+                    h = Math.imul(h ^ str.charCodeAt(i), 3432918353),
+                        h = h << 13 | h >>> 19;
+                // iterate once
+                h = Math.imul(h ^ h >>> 16, 2246822507);
+                h = Math.imul(h ^ h >>> 13, 3266489909);
+                h = (h ^= h >>> 16) >>> 0;
+                A = h % need;
+                if (A < 0) A += need;
+                return A;
+            }
         }
     };
     return {
