@@ -2,8 +2,55 @@ a.jlsgbujiang {
     cursor: pointer;
     text-decoration: underline;
 }
+.jlsgbujiang {
+    --trans: 0.75;
 
-.menubg.jlsgbujiang {
+}
+.menubg.jlsgbujiang.main {
     inset: 5% 10% 5% 10%;
     animation: dialog_start2 0.3s;
+}
+.loadtext.jlsgbujiang {
+    font-family: 'huangcao','xinwei';
+    font-size: xxx-large;
+    text-align: center;
+    vertical-align: middle;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    /* align horizontal */
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.orbdesc.jlsgbujiang {
+    --width: 144px;
+    width: calc(var(--trans) * var(--width));
+    height: calc(var(--trans) * var(--width) / 2);
+    position: relative;
+    margin: calc(var(--trans) * 7px);
+}
+.orbdesc.jlsgbujiang > .orb {
+    inset: calc(var(--trans) * 2px);
+    position: absolute;
+    /* height: 100%; */
+    height: calc(var(--trans) * 68px);
+}
+.orbdesc.jlsgbujiang > .line {
+
+}
+.desctextbox.jlsgbujiang {
+    flex-direction: column;
+    display: inline-flex;
+    left: calc(var(--trans) * var(--width) / 2);
+    width: calc(var(--trans) * var(--width) / 2);
+    height: calc(var(--trans) * var(--width) / 2);
+    align-items: center;
+    justify-content: space-around;
+    /* height: 100%; */
+}
+.desctextbox.jlsgbujiang > span {
+    font-family: 'STXinwei','xinwei';
+    font-size: calc(var(--trans) * 20px);
 }

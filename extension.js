@@ -1,4 +1,6 @@
 game.import('extension', function (lib, game, ui, get, ai, _status) {
+    /** without ending slash! */
+    const assetURL = lib.assetURL + 'extension/部将';
     const internals = {
         panel: {
             node: null,
@@ -8,8 +10,56 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.newOrbs = this.newOrbs || [];
                     this.newOrbs.push(orbs);
                 },
+                _makeOrb(orbID) {
+                    let data = internals.data.orbs[orbID];
+                    if (!data) return;
+                    let node = document.createElement("div");
+                    node.classList.add('orbdesc', 'jlsgbujiang', 'menubg'); //'popup-container'
+                    let img = document.createElement("img"); node.appendChild(img);
+                    img.classList.add('orb', 'jlsgbujiang');
+                    img.src = assetURL + `/zz/color/${data[0]}.png`;
+                    if (data[1]) {
+                        let mark = document.createElement("img"); node.appendChild(mark);
+                        mark.classList.add('orb', 'jlsgbujiang');
+                        mark.style.zIndex = 1;
+                        // mark.classList.add('orb', 'jlsgbujiang');
+                        mark.src = assetURL + `/zz/type/${data[0]}_${data[1]}.png`;
+                    }
+                    let textBox = document.createElement("div"); node.appendChild(textBox);
+                    textBox.classList.add('desctextbox', 'jlsgbujiang');
+                    // middle line
+                    let midLine = document.createElement("div");
+                    midLine.classList.add('line'); textBox.appendChild(midLine);
+                    let str1 = lib.translate[data[2][0]+'_ab'] || lib.translate[data[2][0]];
+                    str1 = str1.slice(0, 2) + '+' + data[2][1];
+                    let desc1 = document.createElement("span"); textBox.appendChild(desc1);
+                    desc1.classList.add('desctext');
+                    desc1.innerText = str1;
+                    let str2 = "&nbsp;";
+                    if (data[3]) {
+                        str2 = lib.translate[data[3][0]+'_ab'] || lib.translate[data[3][0]];
+                        str2 = str2.slice(0, 2) + '+' + data[3][1];
+                    }
+                    let desc2 = document.createElement("span"); textBox.appendChild(desc2);
+                    desc2.classList.add('desctext');
+                    desc2.innerHTML = str2;
+                    return {
+                        node: node,
+                        id: orbID,
+                    }
+                },
                 newOrbs: null,
-            }
+            },
+            loadText(toggle) {
+                if (!this.node) return;
+                if (!this._loadText) {
+                    this._loadText = document.createElement("div");
+                    this._loadText.innerHTML =  '加载中…';
+                    this._loadText.classList.add('loadtext', 'jlsgbujiang');
+                    this.node.appendChild(this._loadText);
+                }
+                this._loadText.style.opacity = toggle ? 1 : 0;
+            },
         },
         async show() {
             console.log('bujiang show');
@@ -42,19 +92,20 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 ui.arena.classList.remove('blur');
                 ui.system.classList.remove('blur');
                 ui.menuContainer.classList.remove('blur');
-                evt.currentTarget.delete();
-                delete this.panel;
+                evt.currentTarget.delete(); // FIXME
+                this.panel.node = null; // FIXME
                 evt.stopPropagation();
                 // if(resume) game.resume2();
                 return false;
             });
-            window.layer = layer;
             ui.window.appendChild(layer);
-            const mainPanel = ui.create.div('.menubg.jlsgbujiang', layer);
+            const mainPanel = ui.create.div('.main.menubg.jlsgbujiang', layer);
             mainPanel.addEventListener('pointerup', ui.click.touchpop);
             this.panel.node = mainPanel;
             // show loading text
-            this.config.skillRequirement = await this.config.skillRequirement;
+            this.panel.loadText(true);
+            [this.config.skillRequirement] = await Promise.all([this.config.skillRequirement, this.Spine]);
+            this.panel.loadText(false);
             this.start();
             // lib.setHover(mainPanel, () => {});
             // const idb = await import('./modules/index.js');
@@ -116,6 +167,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             if (this.bonusReady) {
                 // alert daily bonus
+            }
+            // debug
+            for (let id in this.data.orbs) {
+                let disc = this.panel.orbList._makeOrb(id);
+                this.panel.node.appendChild(disc.node);
+
             }
         },
         /**
@@ -210,18 +267,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (info[1] == 'shen' || i.startsWith('boss')) continue;
                 if (info[3].includes(name)) {
                     gp.add(info[1]);
-                    strength.push(get.rank(i, true) / (info[3].length + 0.2))
+                    strength.push(get.rank(i, true) / info[3].length)
+                    // strength.push(get.rank(i, true) / (info[3].length + 0.2))
                 }
             }
-            if (!gp.size) return [1,1,1,1];
-            strength = strength.reduce((a,b) => a + b) / strength.length;
+            if (!gp.size) return [1, 1, 1, 1];
+            strength = strength.reduce((a, b) => a + b) / strength.length;
             strength = Math.floor(strength);
             if (gp.has('shu')) temp[0] += 1;
             if (gp.has('qun')) temp[1] += 1;
             if (gp.has('wu')) temp[2] += 1;
             if (gp.has('wei')) temp[3] += 1;
             if (gp.has('jin')) temp[3] += 1;
-            let tempSum = temp.reduce((a,b) => a+b);
+            let tempSum = temp.reduce((a, b) => a + b);
             if (strength > tempSum) {
                 if (strength > 5 && tempSum <= 2) {
                     temp[temp.indexOf(1)] = strength;
@@ -234,7 +292,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         temp[nextId] += 1;
                         --strength;
                     }
-                    while(strength--) {
+                    while (strength--) {
                         let nxt = raN % 3;
                         if (nxt >= mainId) ++nxt;
                         ++temp[nxt];
@@ -539,11 +597,67 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         content: function (config, pack) {
             internals.config.skillRequirement = new Promise((resolve, reject) => {
                 lib.init.json(
-                    lib.assetURL + 'extension/部将/skillRequirement.json',
+                    assetURL + '/skillRequirement.json',
                     o => resolve(o),
                     () => reject()
                 );
             });
+            internals.Spine = new Promise((resolve, reject) => {
+                if (window.PIXI) {
+                    resolve();
+                    return;
+                }
+                let script = document.createElement('script');
+                script.src = 'https://unpkg.com/pixi.js@6/dist/browser/pixi.js'
+                script.defer = true;
+                document.head.appendChild(script);
+                script.onerror = reject;
+                script.onload = () => {
+                    let inte;
+                    let cnt = 0;
+                    let task = () => {
+                        setTimeout(() => {
+                            ++cnt;
+                            if (cnt >= 10) {
+                                clearInterval(inte);
+                                reject();
+                            }
+                            if (window.PIXI) {
+                                clearInterval(inte);
+                                let script2 = document.createElement('script');
+                                script2.src = 'https://unpkg.com/pixi-spine@3/dist/pixi-spine.umd.js'
+                                script2.defer = true;
+                                script2.onerror = reject;
+                                script2.onload = resolve;
+                                document.head.appendChild(script2);
+                            }
+                        });
+                    }
+                    inte = setInterval(task, 200);
+                }
+            })
+            // internals.PIXI = new Promise((resolve, reject) => {
+            //     script2.addEventListener('load', resolve);
+            //     script2.addEventListener('error', reject);
+            // });
+            /** PIXI plugins wont work when PIXI is a module! */
+            // // https://unpkg.com/pixi.js@6/dist/browser/pixi.mjs
+            // internals.PIXI = import('https://cdn.skypack.dev/pixi.js@6').then(m => {
+            //     window.PIXI = m;
+            //     return import('https://cdn.skypack.dev/pixi-spine').then(m => {
+            //         // debugger;
+            //         window.Spine = m.Spine;
+            //     });
+            //     // new Promise((resolve, reject) => {
+            //     //     let script = document.createElement('script');
+            //     //     script.src = 'https://unpkg.com/pixi-spine@3/dist/pixi-spine.umd.js'
+            //     //     document.head.appendChild(script);
+            //     //     script.addEventListener('load',resolve);
+            //     //     script.addEventListener('error',reject);
+            //     // });
+            // }).catch(e => {
+            //     console.warn('pixi or spine load failed', e);
+            // })
             if (config.shortcut) {
                 lib.arenaReady.push(() => {
                     ui.config2.addEventListener('pointerup', evt => {
@@ -581,7 +695,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (!config.enable) {
                 return;
             }
-            lib.init.css(lib.assetURL + 'extension/' + _status.extension, 'style');
+            lib.init.css(assetURL, 'style');
         },
         config: {
             shortcut: {
@@ -593,6 +707,16 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
         },
         help: {
+            部将概述: `
+三行三列双对角线，珠子：<br>
+均为同一色或彩珠，计为一该色色链<br>
+若某技能加值打到10，且部将达成改技能的色链需求，视为拥有该技能<br>
+限制：某些技能之间有冲突，一套最多两个彩珠。<br>
+彩珠技能价值为3~9，单色珠子为1~4<br>
+合成：<br>
+珠子1决定生成珠子的技能1，珠子2决定生成珠子的技能2<br>
+珠子3决定生成珠子的样式（颜色&花纹）<br>
+`,
             部将区别: `
 与原生部将区别：<br>
 没有位置限制<br>

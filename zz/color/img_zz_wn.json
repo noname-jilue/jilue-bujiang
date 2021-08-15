@@ -1,0 +1,61 @@
+{
+"skeleton": {
+	"hash": "YIUpAsg6T0X1G9xEQai6pELw8/Y",
+	"spine": "3.6.53",
+	"width": 67,
+	"height": 67,
+	"images": "../../效果用/部将页面/img_zz_wn 2/images/"
+},
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "img_zz_wn 2_00", "bone": "root", "attachment": "img_zz_wn 2_04" }
+],
+"skins": {
+	"default": {
+		"img_zz_wn 2_00": {
+			"img_zz_wn 2_00": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_02": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_04": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_06": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_08": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_10": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_12": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_14": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_16": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_18": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_20": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_22": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_24": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_26": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 },
+			"img_zz_wn 2_28": { "x": -0.5, "y": -0.5, "width": 67, "height": 67 }
+		}
+	}
+},
+"animations": {
+	"animation": {
+		"slots": {
+			"img_zz_wn 2_00": {
+				"attachment": [
+					{ "time": 0, "name": "img_zz_wn 2_00" },
+					{ "time": 0.0667, "name": "img_zz_wn 2_02" },
+					{ "time": 0.1333, "name": "img_zz_wn 2_04" },
+					{ "time": 0.2, "name": "img_zz_wn 2_06" },
+					{ "time": 0.2667, "name": "img_zz_wn 2_08" },
+					{ "time": 0.3333, "name": "img_zz_wn 2_10" },
+					{ "time": 0.4, "name": "img_zz_wn 2_12" },
+					{ "time": 0.4667, "name": "img_zz_wn 2_14" },
+					{ "time": 0.5333, "name": "img_zz_wn 2_16" },
+					{ "time": 0.6, "name": "img_zz_wn 2_18" },
+					{ "time": 0.6667, "name": "img_zz_wn 2_20" },
+					{ "time": 0.7333, "name": "img_zz_wn 2_22" },
+					{ "time": 0.8, "name": "img_zz_wn 2_24" },
+					{ "time": 0.8667, "name": "img_zz_wn 2_26" },
+					{ "time": 0.9333, "name": "img_zz_wn 2_28" }
+				]
+			}
+		}
+	}
+}
+}
