@@ -25,14 +25,14 @@ a.jlsgbujiang {
 }
 
 .orbdesc.jlsgbujiang {
-    --width: 144px;
+    --width: 148px;
     width: calc(var(--trans) * var(--width));
     height: calc(var(--trans) * var(--width) / 2);
     position: relative;
     margin: calc(var(--trans) * 7px);
 }
 .orbdesc.jlsgbujiang > .orb {
-    inset: calc(var(--trans) * 2px);
+    inset: calc(var(--trans) * 3px);
     position: absolute;
     /* height: 100%; */
     height: calc(var(--trans) * 68px);

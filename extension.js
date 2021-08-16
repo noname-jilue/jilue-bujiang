@@ -174,6 +174,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 this.panel.node.appendChild(disc.node);
 
             }
+            // debug skill requirement
+            let targets = Object.keys(lib.character).randomGets(10);
+            for (let target of targets) {
+                console.log(target, get.translation(target), get.rank(target));
+                console.log(lib.character[target][3].map(s => [get.translation(s), this.getSkillRequirement(s)]).flat(2));
+            }
         },
         /**
          * give status of the given suit
@@ -258,45 +264,102 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             temp = [0, 0, 0, 0];
             /** owner group */
             let gp = new Set();
-            let raN = this.utils.seededRand(name, 27);
+            let raN3 = [], raN4 = [];
+            {
+                let temp = this.utils.seededRand(name, 27 * 64);
+                for (let _ of Array(3)) {
+                    raN4.push(temp % 4);
+                    temp >>= 2;
+                }
+                for (let _ of Array(3)) {
+                    raN3.push(temp % 3);
+                    temp = Math.floor(temp / 3);
+                }
+            }
             /** skill strength estimation */
             let strength = [];
             // TODO: use fixed character list
             for (const i in lib.character) {
                 const info = lib.character[i];
-                if (info[1] == 'shen' || i.startsWith('boss')) continue;
                 if (info[3].includes(name)) {
                     gp.add(info[1]);
-                    strength.push(get.rank(i, true) / info[3].length)
-                    // strength.push(get.rank(i, true) / (info[3].length + 0.2))
+                    if (info[1] == 'shen' || i.startsWith('boss')) continue;
+                    let cRank = get.rank(i, true);
+                    let newStr = (cRank - 1) / info[3].length;
+                    if (cRank != 10) {
+                        if (info[2] < 4) {
+                            newStr *= 1.5 ** (4 - info[2])
+                        } else {
+                            newStr *= 1.25 ** (4 - info[2])
+                        }
+                    }
+                    // strength.push(get.rank(i, true) / info[3].length)
+                    strength.push(newStr)
                 }
             }
             if (!gp.size) return [1, 1, 1, 1];
-            strength = strength.reduce((a, b) => a + b) / strength.length;
-            strength = Math.floor(strength);
-            if (gp.has('shu')) temp[0] += 1;
-            if (gp.has('qun')) temp[1] += 1;
-            if (gp.has('wu')) temp[2] += 1;
-            if (gp.has('wei')) temp[3] += 1;
-            if (gp.has('jin')) temp[3] += 1;
+            if (!strength.length) {
+                strength = 6;
+            } else {
+                strength = strength.reduce((a, b) => a + b) / strength.length;
+            }
+            if (strength - Math.floor(strength) > raN4[2] / 3) {
+                ++strength;
+            }
+            strength = Math.floor(strength); strength = Math.min(strength, 8);
+            if (gp.has('shu')) temp[0] = 1;
+            if (gp.has('qun')) temp[1] = 1;
+            if (gp.has('wu')) temp[2] = 1;
+            if (gp.has('wei')) temp[3] = 1;
+            if (gp.has('jin')) temp[3] = 1;
             let tempSum = temp.reduce((a, b) => a + b);
-            if (strength > tempSum) {
-                if (strength > 5 && tempSum <= 2) {
-                    temp[temp.indexOf(1)] = strength;
-                } else {
+            if(tempSum > 1) {
+                strength = Math.min(strength, 5);
+                strength -= tempSum;
+                while (strength >= tempSum) {
                     strength -= tempSum;
-                    var mainId = temp.indexOf(1), nextId = temp.lastIndexOf(1);
-                    temp[mainId] += Math.floor(strength / 2);
-                    strength -= Math.floor(strength / 2);
-                    if (mainId != nextId && strength) {
-                        temp[nextId] += 1;
-                        --strength;
+                    for (let i of temp.keys()) {
+                        if (temp[i]) ++temp[i];
                     }
-                    while (strength--) {
-                        let nxt = raN % 3;
-                        if (nxt >= mainId) ++nxt;
-                        ++temp[nxt];
-                        raN = Math.floor(raN);
+                }
+                for (let i = 0; strength; ++i, --strength) {
+                    ++temp[raN4[i]];
+                }
+            } 
+            else if (strength > 1) { // tempSum == 1
+                let mainID = temp.indexOf(1), subIDs = raN3.slice();
+                for (let i of subIDs.keys()) {
+                    if (subIDs[i] >= mainID) ++subIDs[i];
+                }
+                if (strength == 8) {
+                    temp[temp.indexOf(1)] = strength;
+                }
+                else if (strength >= 6) {
+                    // 25% chance one split out
+                    if (raN4[0] == 0) {
+                        --strength;
+                        ++temp[subIDs[0]];
+                    }
+                    temp[mainID] = strength;
+                } else {
+                    --strength;
+                    if (raN4[0] <= 1) { // 1 / 2 all go to main
+                        temp[mainID] += strength;
+                    }
+                    else {
+                        if (strength == 4) {
+                            --strength; ++temp[mainID];
+                        }
+                        if (raN3[0] + strength >= 5)  { 
+                            --strength; ++temp[mainID];
+                        }
+                        if (strength) {
+                            --strength; ++temp[raN4[1]];
+                        }
+                        while (strength--) {
+                            ++temp[subIDs.shift()];
+                        }
+
                     }
                 }
             }
