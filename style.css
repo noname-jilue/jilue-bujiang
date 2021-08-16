@@ -33,12 +33,12 @@ a.jlsgbujiang {
 }
 .orbdesc.jlsgbujiang > .orb {
     inset: calc(var(--trans) * 3px);
-    position: absolute;
-    /* height: 100%; */
-    height: calc(var(--trans) * 68px);
 }
-.orbdesc.jlsgbujiang > .line {
-
+.orb.jlsgbujiang > * {
+    position: absolute;
+    /* inset: calc(var(--trans) * 3px); */
+    /* height: calc(var(--trans) * 68px); */
+    height: 100%;
 }
 .desctextbox.jlsgbujiang {
     flex-direction: column;
@@ -50,7 +50,77 @@ a.jlsgbujiang {
     justify-content: space-around;
     /* height: 100%; */
 }
+.desctextbox.jlsgbujiang > .line {
+    width: 75%;
+    height: 1.5px;
+    background: linear-gradient(to right,rgba(0,0,0,0), black, rgba(0,0,0,0));
+}
 .desctextbox.jlsgbujiang > span {
     font-family: 'STXinwei','xinwei';
     font-size: calc(var(--trans) * 20px);
+}
+
+.suitpanel.jlsgbujiang {
+    position: relative;
+    height: calc(var(--trans) * 331px);
+    width: calc(var(--trans) * 385px);
+    background-image: url('./bujiang/img_di_zhupan.png');
+    background-size: cover;
+    --dx: 116px;
+    --dy: 116px;
+    --x0: 43px;
+    --y0: 15px;
+    --x1: calc(var(--x0) + var(--dx));
+    --y1: calc(var(--y0) + var(--dy));
+    --x2: calc(var(--x1) + var(--dx));
+    --y2: calc(var(--y1) + var(--dy));
+}
+.suitpanel.jlsgbujiang > .orb {
+    height: calc(var(--trans) * 68px);
+    width: calc(var(--trans) * 68px);
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(1) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y0));
+    left: calc(var(--trans) * var(--x0));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(2) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y0));
+    left: calc(var(--trans) * var(--x1));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(3) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y0));
+    left: calc(var(--trans) * var(--x2));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(4) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y1));
+    left: calc(var(--trans) * var(--x0));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(5) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y1));
+    left: calc(var(--trans) * var(--x1));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(6) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y1));
+    left: calc(var(--trans) * var(--x2));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(7) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y2));
+    left: calc(var(--trans) * var(--x0));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(8) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y2));
+    left: calc(var(--trans) * var(--x1));
+}
+.suitpanel.jlsgbujiang > .orb:nth-child(9) {
+    position: absolute;
+    top:  calc(var(--trans) * var(--y2));
+    left: calc(var(--trans) * var(--x2));
 }

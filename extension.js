@@ -4,37 +4,46 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
     const internals = {
         panel: {
             node: null,
+            _makeOrb(orbData) {
+                /** TODO: make empty orb */
+                let orb = document.createElement("div");
+                orb.classList.add('orb', 'jlsgbujiang');
+                let img = document.createElement("img"); orb.appendChild(img);
+                // img.classList.add('orb', 'jlsgbujiang');
+                img.src = assetURL + `/zz/color/${orbData[0]}.png`;
+                if (orbData[1]) {
+                    let mark = document.createElement("img"); orb.appendChild(mark);
+                    // mark.classList.add('orb', 'jlsgbujiang');
+                    mark.style.zIndex = 1;
+                    // mark.classList.add('orb', 'jlsgbujiang');
+                    mark.src = assetURL + `/zz/type/${orbData[0]}_${orbData[1]}.png`;
+                }
+                return orb;
+            },
             orbList: {
                 node: null,
                 gainOrbs(orbs) {
                     this.newOrbs = this.newOrbs || [];
                     this.newOrbs.push(orbs);
                 },
-                _makeOrb(orbID) {
+                _makeOrbDesc(orbID) {
                     let data = internals.data.orbs[orbID];
                     if (!data) return;
                     let node = document.createElement("div");
                     node.classList.add('orbdesc', 'jlsgbujiang', 'menubg'); //'popup-container'
-                    let img = document.createElement("img"); node.appendChild(img);
-                    img.classList.add('orb', 'jlsgbujiang');
-                    img.src = assetURL + `/zz/color/${data[0]}.png`;
-                    if (data[1]) {
-                        let mark = document.createElement("img"); node.appendChild(mark);
-                        mark.classList.add('orb', 'jlsgbujiang');
-                        mark.style.zIndex = 1;
-                        // mark.classList.add('orb', 'jlsgbujiang');
-                        mark.src = assetURL + `/zz/type/${data[0]}_${data[1]}.png`;
-                    }
+                    let orb = internals.panel._makeOrb(data); node.appendChild(orb);
+                    
                     let textBox = document.createElement("div"); node.appendChild(textBox);
                     textBox.classList.add('desctextbox', 'jlsgbujiang');
-                    // middle line
-                    let midLine = document.createElement("div");
-                    midLine.classList.add('line'); textBox.appendChild(midLine);
+                    // TODO: add right click popup & always show requirement toggle
                     let str1 = lib.translate[data[2][0]+'_ab'] || lib.translate[data[2][0]];
                     str1 = str1.slice(0, 2) + '+' + data[2][1];
                     let desc1 = document.createElement("span"); textBox.appendChild(desc1);
                     desc1.classList.add('desctext');
                     desc1.innerText = str1;
+                    // middle line
+                    let midLine = document.createElement("div"); textBox.appendChild(midLine);
+                    midLine.classList.add('line'); 
                     let str2 = "&nbsp;";
                     if (data[3]) {
                         str2 = lib.translate[data[3][0]+'_ab'] || lib.translate[data[3][0]];
@@ -46,9 +55,36 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     return {
                         node: node,
                         id: orbID,
+                        orb: orb,
                     }
                 },
                 newOrbs: null,
+            },
+            suitPanel: {
+                // node: null, // maybe no global one?
+                init(data, interactive) {
+                    node = document.createElement("div");
+                    node.classList.add('suitpanel', 'jlsgbujiang');
+                    let children = [[],[],[]];
+                    for (let i of Array(3).keys()) {
+                        for (let j of Array(3).keys()) {
+                            let orb = data.orbs[i][j], orbNode;
+                            if (!orb || !internals.data.orbs[orb]) {
+                                orbNode = document.createElement("div");
+                                orbNode.classList.add('orb', 'jlsgbujiang');
+                            } else {
+                                orbNode = internals.panel._makeOrb(internals.data.orbs[orb]);
+                            }
+                            children[i].push(orbNode);
+                            node.appendChild(orbNode);
+                        }
+                    }
+                    return {
+                        node: node,
+                        name: interactive ? data.name : null,
+                        orbs: children,
+                    }
+                },
             },
             loadText(toggle) {
                 if (!this.node) return;
@@ -170,16 +206,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             // debug
             for (let id in this.data.orbs) {
-                let disc = this.panel.orbList._makeOrb(id);
+                let disc = this.panel.orbList._makeOrbDesc(id);
                 this.panel.node.appendChild(disc.node);
 
             }
+            let suitPanel = this.panel.suitPanel.init(this.data.suits[0], true);
+            this.panel.node.appendChild(suitPanel.node);
             // debug skill requirement
-            let targets = Object.keys(lib.character).randomGets(10);
-            for (let target of targets) {
-                console.log(target, get.translation(target), get.rank(target));
-                console.log(lib.character[target][3].map(s => [get.translation(s), this.getSkillRequirement(s)]).flat(2));
-            }
+            // let targets = Object.keys(lib.character).randomGets(10);
+            // for (let target of targets) {
+            //     console.log(target, get.translation(target), get.rank(target));
+            //     console.log(lib.character[target][3].map(s => [get.translation(s), this.getSkillRequirement(s)]).flat(2));
+            // }
         },
         /**
          * give status of the given suit
