@@ -21,32 +21,70 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return orb;
             },
             orbList: {
-                node: null,
+                get node() {
+                    delete this.node;
+                    internals.setupData();
+                    let node = document.createElement("div");
+                    node.classList.add('orblist', 'jlsgbujiang');
+                    for (let id of internals.data.newOrbs) {
+                        if (internals.data.orbs[id]) {
+                            let disc = this._makeOrbDesc(id);
+                            node.prepend(disc.node);
+                        }
+                    }
+                    for (let id in internals.data.orbs) {
+                        if (internals.data.newOrbs.contains(id)) {
+                            continue;
+                        }
+                        let disc = this._makeOrbDesc(id);
+                        node.appendChild(disc.node);
+                    }
+                    this.node = node;
+                    return this.node;
+                },
                 gainOrbs(orbs) {
-                    this.newOrbs = this.newOrbs || [];
-                    this.newOrbs.push(orbs);
+                    internals.data.newOrbs.push(...orbs);
+                    if (this.node) {
+                        for (let id of orbs) {
+                            if (internals.data.orbs[id]) {
+                                let disc = this._makeOrbDesc(id);
+                                this.node.prepend(disc.node);
+                            }
+                        }
+                    }
+                    this.save();
                 },
                 _makeOrbDesc(orbID) {
                     let data = internals.data.orbs[orbID];
                     if (!data) return;
                     let node = document.createElement("div");
                     node.classList.add('orbdesc', 'jlsgbujiang', 'menubg'); //'popup-container'
+                    if (internals.data.newOrbs.contains(orbID)) {
+                        let redDot = document.createElement("div");
+                        redDot.classList.add('reddot', 'jlsgbujiang');
+                        node.appendChild(redDot);
+                        node.addEventListener('mouseenter', e => {
+                            node.querySelector('.reddot').style.opacity = 0;
+                            internals.data.newOrbs.remove(orbID);
+                            internals.save();
+                        });
+                    }
                     let orb = internals.panel._makeOrb(data); node.appendChild(orb);
-                    
+
                     let textBox = document.createElement("div"); node.appendChild(textBox);
                     textBox.classList.add('desctextbox', 'jlsgbujiang');
                     // TODO: add right click popup & always show requirement toggle
-                    let str1 = lib.translate[data[2][0]+'_ab'] || lib.translate[data[2][0]];
+                    let str1 = lib.translate[data[2][0] + '_ab'] || lib.translate[data[2][0]];
                     str1 = str1.slice(0, 2) + '+' + data[2][1];
                     let desc1 = document.createElement("span"); textBox.appendChild(desc1);
                     desc1.classList.add('desctext');
                     desc1.innerText = str1;
                     // middle line
                     let midLine = document.createElement("div"); textBox.appendChild(midLine);
-                    midLine.classList.add('line'); 
+                    midLine.classList.add('line');
                     let str2 = "&nbsp;";
                     if (data[3]) {
-                        str2 = lib.translate[data[3][0]+'_ab'] || lib.translate[data[3][0]];
+                        str2 = lib.translate[data[3][0] + '_ab'] || lib.translate[data[3][0]];
                         str2 = str2.slice(0, 2) + '+' + data[3][1];
                     }
                     let desc2 = document.createElement("span"); textBox.appendChild(desc2);
@@ -60,12 +98,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
                 newOrbs: null,
             },
-            suitPanel: {
+            suitDisk: {
                 // node: null, // maybe no global one?
                 init(data, interactive) {
                     node = document.createElement("div");
-                    node.classList.add('suitpanel', 'jlsgbujiang');
-                    let children = [[],[],[]];
+                    node.classList.add('suitdisk', 'jlsgbujiang');
+                    let children = [[], [], []];
                     for (let i of Array(3).keys()) {
                         for (let j of Array(3).keys()) {
                             let orb = data.orbs[i][j], orbNode;
@@ -86,11 +124,74 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                 },
             },
+            suitPage: {
+                node: null,
+                suit: null,
+                suitDesc: {
+                    node: null,
+                    hpNode: null,
+                    init() {
+                        this.node = document.createElement("div");
+                        this.node.classList.add('suitdesc', 'jlsgbujiang');
+                        this.hpNode = document.createElement("div");
+                        this.hpNode.style.cssText = 'transition: all 1s';
+                        this.hpNode.classList.add('hp');
+                        this.hpNode.dataset.condition = 'high';
+                    },
+                    get hp() {
+                        return this.hpNode.children.length;
+                    },
+                    set hp(value) { // TODO: animation
+                        this.hpNode.dataset.condition = value > 3 ? 'high' : 'mid';
+                        while (this.hpNode.children.length > value) {
+                            this.hpNode.removeChild(this.hpNode.lastChild);
+                        }
+                        while (this.hpNode.children.length < value) {
+                            this.hpNode.appendChild(document.createElement('div'));
+                        }
+                    },
+                    update(report) {
+                        let newHp = 5, newskL = report.skills.length;
+                        if (newskL > 0) --newHp;
+                        if (newskL > 3) --newHp;
+                        if (newskL > 5) --newHp;
+                        this.hp = newHp;
+                        this.node.textContent = "";
+                        this.node.append('体力：');
+                        this.node.appendChild(this.hpNode);
+                        this.node.appendChild(document.createElement('br'));
+                        this.node.append('技能：' + report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, ''));
+                    }
+                },
+                init() {
+                    let node = document.createElement("div"); node.style.cssText = "inset: 0";
+                    this.node = node;
+                    let left = document.createElement("div"); node.appendChild(left);
+                    left.style.cssText = "inset: 0 50% 0 0";
+                    let right = document.createElement("div"); node.appendChild(right);
+                    right.style.cssText = "inset: 0 0 0 50%";
+                    left.appendChild(internals.panel.orbList.node);
+                    this.suitDesc.init();
+                    let descText = this.suitDesc.node; right.appendChild(descText);
+                    descText.innerText = "test";
+                    let suitData = internals.data.suits[0];
+                    this.suit = internals.panel.suitDisk.init(suitData, true);
+                    right.appendChild(this.suit.node);
+                    let suitReport = internals.report(suitData.orbs);
+                    this.suitDesc.update(suitReport);
+                },
+                show() {
+                    if (!this.node) {
+                        this.init();
+                    }
+                    internals.panel.node.appendChild(this.node);
+                }
+            },
             loadText(toggle) {
                 if (!this.node) return;
                 if (!this._loadText) {
                     this._loadText = document.createElement("div");
-                    this._loadText.innerHTML =  '加载中…';
+                    this._loadText.innerHTML = '加载中…';
                     this._loadText.classList.add('loadtext', 'jlsgbujiang');
                     this.node.appendChild(this._loadText);
                 }
@@ -129,7 +230,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 ui.system.classList.remove('blur');
                 ui.menuContainer.classList.remove('blur');
                 evt.currentTarget.delete(); // FIXME
-                this.panel.node = null; // FIXME
+                // this.panel.node = null; // FIXME
                 evt.stopPropagation();
                 // if(resume) game.resume2();
                 return false;
@@ -204,14 +305,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (this.bonusReady) {
                 // alert daily bonus
             }
+            this.panel.suitPage.show();
             // debug
-            for (let id in this.data.orbs) {
-                let disc = this.panel.orbList._makeOrbDesc(id);
-                this.panel.node.appendChild(disc.node);
+            // for (let id in this.data.orbs) {
+            //     let disc = this.panel.orbList._makeOrbDesc(id);
+            //     this.panel.node.appendChild(disc.node);
 
-            }
-            let suitPanel = this.panel.suitPanel.init(this.data.suits[0], true);
-            this.panel.node.appendChild(suitPanel.node);
+            // }
+            // let suitDisk = this.panel.suitDisk.init(this.data.suits[0], true);
+            // this.panel.node.appendChild(suitDisk.node);
             // debug skill requirement
             // let targets = Object.keys(lib.character).randomGets(10);
             // for (let target of targets) {
@@ -351,7 +453,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (gp.has('wei')) temp[3] = 1;
             if (gp.has('jin')) temp[3] = 1;
             let tempSum = temp.reduce((a, b) => a + b);
-            if(tempSum > 1) {
+            if (tempSum > 1) {
                 strength = Math.min(strength, 5);
                 strength -= tempSum;
                 while (strength >= tempSum) {
@@ -363,7 +465,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 for (let i = 0; strength; ++i, --strength) {
                     ++temp[raN4[i]];
                 }
-            } 
+            }
             else if (strength > 1) { // tempSum == 1
                 let mainID = temp.indexOf(1), subIDs = raN3.slice();
                 for (let i of subIDs.keys()) {
@@ -388,7 +490,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (strength == 4) {
                             --strength; ++temp[mainID];
                         }
-                        if (raN3[0] + strength >= 5)  { 
+                        if (raN3[0] + strength >= 5) {
                             --strength; ++temp[mainID];
                         }
                         if (strength) {
@@ -643,6 +745,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         }
                     ],
                     orbs: {},
+                    newOrbs: [],
                     states: {
                         needInitialGive: true,
                     }

@@ -4,10 +4,9 @@ a.jlsgbujiang {
 }
 .jlsgbujiang {
     --trans: 0.75;
-
 }
 .menubg.jlsgbujiang.main {
-    inset: 5% 10% 5% 10%;
+    inset: 5%;
     animation: dialog_start2 0.3s;
 }
 .loadtext.jlsgbujiang {
@@ -23,7 +22,17 @@ a.jlsgbujiang {
     height: 100%;
     width: 100%;
 }
-
+.reddot.jlsgbujiang {
+    background: rgba(255, 0, 0, 0.8);
+    border-radius: 100%;
+    box-shadow: rgb(0 0 0 / 20%) 1px -1px 2px inset, rgb(255 255 255 / 15%) -1px 1px 5px inset, rgba(0, 0, 0, 0.5) -1px 1px 2px;
+}
+.orbdesc.jlsgbujiang > .reddot {
+    top: -3px; 
+    right: -3px; 
+    padding: 6px;
+    transition: 0.3s cubic-bezier(0.4, 0, 1, 1);
+}
 .orbdesc.jlsgbujiang {
     --width: 148px;
     width: calc(var(--trans) * var(--width));
@@ -59,8 +68,14 @@ a.jlsgbujiang {
     font-family: 'STXinwei','xinwei';
     font-size: calc(var(--trans) * 20px);
 }
-
-.suitpanel.jlsgbujiang {
+.suitdesc.jlsgbujiang {
+    position: relative;
+    display: block;
+}
+.suitdesc.jlsgbujiang > .hp {
+    position: static;
+}
+.suitdisk.jlsgbujiang {
     position: relative;
     height: calc(var(--trans) * 331px);
     width: calc(var(--trans) * 385px);
@@ -75,51 +90,51 @@ a.jlsgbujiang {
     --x2: calc(var(--x1) + var(--dx));
     --y2: calc(var(--y1) + var(--dy));
 }
-.suitpanel.jlsgbujiang > .orb {
+.suitdisk.jlsgbujiang > .orb {
     height: calc(var(--trans) * 68px);
     width: calc(var(--trans) * 68px);
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(1) {
+.suitdisk.jlsgbujiang > .orb:nth-child(1) {
     position: absolute;
     top:  calc(var(--trans) * var(--y0));
     left: calc(var(--trans) * var(--x0));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(2) {
+.suitdisk.jlsgbujiang > .orb:nth-child(2) {
     position: absolute;
     top:  calc(var(--trans) * var(--y0));
     left: calc(var(--trans) * var(--x1));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(3) {
+.suitdisk.jlsgbujiang > .orb:nth-child(3) {
     position: absolute;
     top:  calc(var(--trans) * var(--y0));
     left: calc(var(--trans) * var(--x2));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(4) {
+.suitdisk.jlsgbujiang > .orb:nth-child(4) {
     position: absolute;
     top:  calc(var(--trans) * var(--y1));
     left: calc(var(--trans) * var(--x0));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(5) {
+.suitdisk.jlsgbujiang > .orb:nth-child(5) {
     position: absolute;
     top:  calc(var(--trans) * var(--y1));
     left: calc(var(--trans) * var(--x1));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(6) {
+.suitdisk.jlsgbujiang > .orb:nth-child(6) {
     position: absolute;
     top:  calc(var(--trans) * var(--y1));
     left: calc(var(--trans) * var(--x2));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(7) {
+.suitdisk.jlsgbujiang > .orb:nth-child(7) {
     position: absolute;
     top:  calc(var(--trans) * var(--y2));
     left: calc(var(--trans) * var(--x0));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(8) {
+.suitdisk.jlsgbujiang > .orb:nth-child(8) {
     position: absolute;
     top:  calc(var(--trans) * var(--y2));
     left: calc(var(--trans) * var(--x1));
 }
-.suitpanel.jlsgbujiang > .orb:nth-child(9) {
+.suitdisk.jlsgbujiang > .orb:nth-child(9) {
     position: absolute;
     top:  calc(var(--trans) * var(--y2));
     left: calc(var(--trans) * var(--x2));
