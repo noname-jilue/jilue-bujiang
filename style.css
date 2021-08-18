@@ -29,7 +29,7 @@ a.jlsgbujiang {
 }
 .orbdesc.jlsgbujiang > .reddot {
     top: -3px; 
-    right: -3px; 
+    right: -5px; 
     padding: 6px;
     transition: 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
@@ -71,9 +71,23 @@ a.jlsgbujiang {
 .suitdesc.jlsgbujiang {
     position: relative;
     display: block;
+    line-height: 1.5;
+
 }
 .suitdesc.jlsgbujiang > .hp {
     position: static;
+}
+.types.jlsgbujiang > img.invalid {
+    display: none;
+}
+.types.jlsgbujiang > img {
+    position: relative;
+    top: -0.2em;
+    height: 2em;
+    filter: brightness(1.5) grayscale(1);
+}
+.suitdisk.jlsgbujiang, .suitdisk.jlsgbujiang * {
+    --trans: 0.5;
 }
 .suitdisk.jlsgbujiang {
     position: relative;

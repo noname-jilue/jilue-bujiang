@@ -52,7 +52,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             }
                         }
                     }
-                    this.save();
+                    internals.save();
                 },
                 _makeOrbDesc(orbID) {
                     let data = internals.data.orbs[orbID];
@@ -130,6 +130,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 suitDesc: {
                     node: null,
                     hpNode: null,
+                    typesNode: null,
                     init() {
                         this.node = document.createElement("div");
                         this.node.classList.add('suitdesc', 'jlsgbujiang');
@@ -137,6 +138,21 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.hpNode.style.cssText = 'transition: all 1s';
                         this.hpNode.classList.add('hp');
                         this.hpNode.dataset.condition = 'high';
+                        this.typesNode = document.createElement("div");
+                        this.typesNode.style.cssText = 'transition: all 1s';
+                        this.typesNode.classList.add('types', 'jlsgbujiang');
+                        for (let i = 1; i <= 3; ++i) {
+                            let mark = document.createElement("img"); this.typesNode.appendChild(mark);
+                            mark.src = assetURL + `/zz/type/1_${i}.png`;
+                            mark.classList.add('invalid');
+                        }
+                        this.node.append('体力：');
+                        this.node.appendChild(this.hpNode);
+                        this.node.appendChild(document.createElement('br'));
+                        this.node.append('灵力：');
+                        this.node.appendChild(this.typesNode);
+                        this.node.appendChild(document.createElement('br'));
+                        this.node.append('技能：'); // report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, '')
                     },
                     get hp() {
                         return this.hpNode.children.length;
@@ -150,17 +166,22 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             this.hpNode.appendChild(document.createElement('div'));
                         }
                     },
+                    get types() {
+                        return this._types;
+                    },
+                    set types(value) {
+                        for (let [i,c] of Array.from(this.typesNode.children).entries()) {
+                            c.classList[(1 << i) & value ? 'remove' : 'add']('invalid');
+                        }
+                        this._types = value;
+                    },
                     update(report) {
                         let newHp = 5, newskL = report.skills.length;
                         if (newskL > 0) --newHp;
                         if (newskL > 3) --newHp;
                         if (newskL > 5) --newHp;
                         this.hp = newHp;
-                        this.node.textContent = "";
-                        this.node.append('体力：');
-                        this.node.appendChild(this.hpNode);
-                        this.node.appendChild(document.createElement('br'));
-                        this.node.append('技能：' + report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, ''));
+                        this.types = report.types;
                     }
                 },
                 init() {
@@ -173,7 +194,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     left.appendChild(internals.panel.orbList.node);
                     this.suitDesc.init();
                     let descText = this.suitDesc.node; right.appendChild(descText);
-                    descText.innerText = "test";
                     let suitData = internals.data.suits[0];
                     this.suit = internals.panel.suitDisk.init(suitData, true);
                     right.appendChild(this.suit.node);
@@ -370,7 +390,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     ++result.colors[color - 1];
                 }
                 if (orbs[0][1] && orbs.every(o => o[1] === orbs[0][1])) {
-                    result.types = orbs[0][1];
+                    result.types |= 1 << (orbs[0][1] - 1);
                 }
                 for (let s in skills) {
                     if (skills[s] >= 10) {
