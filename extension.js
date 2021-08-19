@@ -9,10 +9,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 let orb = document.createElement("div");
                 orb.classList.add('orb', 'jlsgbujiang');
                 let img = document.createElement("img"); orb.appendChild(img);
-                if (!orbData) {
+                if (!orbData) { // empty orb
                     orb.classList.add('empty');
-                    img.src = assetURL;
-                    return;    
+                    img.src = assetURL + `/zz/bg.png`;
+                    return orb;
                 }
                 img.src = assetURL + `/zz/color/${orbData[0]}.png`;
                 if (orbData[1]) {
@@ -120,7 +120,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 orbNode.addEventListener('click', e => {
                                     // TODO: update orbs in use
                                     if (game.getExtensionConfig('部将', 'quickSwap')) {
-                                        node.replaceChild(document.createElement("div"), orbNode);
+                                        let newChild = internals.panel._makeOrb();
+                                        node.replaceChild(newChild, orbNode);
+                                        newChild.addEventListener('click', e => {
+                                            node.replaceChild(orbNode, newChild);
+                                        });
                                     } else {
                                         // create action list tip
                                         throw 'not implemented';
@@ -192,7 +196,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         return this._types;
                     },
                     set types(value) {
-                        for (let [i,c] of Array.from(this.typesNode.children).entries()) {
+                        for (let [i, c] of Array.from(this.typesNode.children).entries()) {
                             c.classList[(1 << i) & value ? 'remove' : 'add']('invalid');
                         }
                         this._types = value;
@@ -201,7 +205,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         return Object.keys(this.skill.skills);
                     },
                     set skills([skills, potentialSkills]) {
-                        for (let [sk, skNode] in Object.entries(this.skill.skills)) {
+                        for (let [sk, skNode] of Object.entries(this.skill.skills)) {
                             if (!skills.contains(sk)) {
                                 skNode.classList.add('invalid');
                                 skNode.addEventListener('transitionend', () => {
@@ -215,10 +219,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 // TODO: use better skill button
                                 // TODO: on hover &| focus, highlight respective orbs, show skill info
                                 let skNode = document.createElement("span");
-                                skNode.innerText = lib.translate[sk].slice(0,2);
+                                this.skill.node.appendChild(skNode);
+                                skNode.innerText = lib.translate[sk].slice(0, 2);
                                 this.skill.skills[sk] = skNode;
                             }
-                        }  
+                        }
                         // TODO: potentialSkills
                     },
                     update(report) {
