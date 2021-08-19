@@ -131,6 +131,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     node: null,
                     hpNode: null,
                     typesNode: null,
+                    skill: {
+                        node: null,
+                        skills: {},
+                    },
                     init() {
                         this.node = document.createElement("div");
                         this.node.classList.add('suitdesc', 'jlsgbujiang');
@@ -146,6 +150,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             mark.src = assetURL + `/zz/type/1_${i}.png`;
                             mark.classList.add('invalid');
                         }
+                        this.skill.node = document.createElement("div");
+                        this.skill.node.style.cssText = 'transition: all 1s';
+                        this.skill.node.classList.add('types', 'jlsgbujiang');
                         this.node.append('体力：');
                         this.node.appendChild(this.hpNode);
                         this.node.appendChild(document.createElement('br'));
@@ -153,6 +160,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.node.appendChild(this.typesNode);
                         this.node.appendChild(document.createElement('br'));
                         this.node.append('技能：'); // report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, '')
+                        this.node.appendChild(this.skill.node);
                     },
                     get hp() {
                         return this.hpNode.children.length;
@@ -175,6 +183,30 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         }
                         this._types = value;
                     },
+                    get skills() {
+                        return Object.keys(this.skill.skills);
+                    },
+                    set skills([skills, potentialSkills]) {
+                        for (let [sk, skNode] in Object.entries(this.skill.skills)) {
+                            if (!skills.contains(sk)) {
+                                skNode.classList.add('invalid');
+                                skNode.addEventListener('transitionend', () => {
+                                    skNode.remove();
+                                });
+                                delete this.skill.skills['sk'];
+                            }
+                        }
+                        for (let sk of skills) {
+                            if (!(sk in this.skill.skills)) {
+                                // TODO: use better skill button
+                                // TODO: on hover &| focus, highlight respective orbs, show skill info
+                                let skNode = document.createElement("span");
+                                skNode.innerText = lib.translate[sk].slice(0,2);
+                                this.skill.skills[sk] = skNode;
+                            }
+                        }  
+                        // TODO: potentialSkills
+                    },
                     update(report) {
                         let newHp = 5, newskL = report.skills.length;
                         if (newskL > 0) --newHp;
@@ -182,6 +214,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (newskL > 5) --newHp;
                         this.hp = newHp;
                         this.types = report.types;
+                        this.skills = [report.skills, report.potentialSkills];
                     }
                 },
                 init() {
