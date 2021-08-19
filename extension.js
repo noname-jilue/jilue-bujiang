@@ -9,7 +9,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 let orb = document.createElement("div");
                 orb.classList.add('orb', 'jlsgbujiang');
                 let img = document.createElement("img"); orb.appendChild(img);
-                // img.classList.add('orb', 'jlsgbujiang');
+                if (!orbData) {
+                    orb.classList.add('empty');
+                    img.src = assetURL;
+                    return;    
+                }
                 img.src = assetURL + `/zz/color/${orbData[0]}.png`;
                 if (orbData[1]) {
                     let mark = document.createElement("img"); orb.appendChild(mark);
@@ -22,6 +26,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             orbList: {
                 get node() {
+                    /** FIXME: rewrite with Intersection Observer API!!! */
                     delete this.node;
                     internals.setupData();
                     let node = document.createElement("div");
@@ -112,6 +117,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 orbNode.classList.add('orb', 'jlsgbujiang');
                             } else {
                                 orbNode = internals.panel._makeOrb(internals.data.orbs[orb]);
+                                orbNode.addEventListener('click', e => {
+                                    // TODO: update orbs in use
+                                    if (game.getExtensionConfig('部将', 'quickSwap')) {
+                                        node.replaceChild(document.createElement("div"), orbNode);
+                                    } else {
+                                        // create action list tip
+                                        throw 'not implemented';
+                                    }
+                                })
                             }
                             children[i].push(orbNode);
                             node.appendChild(orbNode);
@@ -958,8 +972,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             shortcut: {
                 name: "快捷键",
                 get intro() {
+                    // TODO
                     return lib.device ? '长按选项→拓展打开部将界面' : '双击选项→拓展打开部将界面';
                 },
+                init: true,
+            },
+            quickSwap: {
+                name: '快捷装卸',
+                intro: '装配/合成界面，单击珠子自动装入/卸下',
+                init: true,
+            },
+            slidingEquip: {
+                name: '滑动装入',
+                intro: '装配/合成界面，装入珠子后目标自动切换到下一个珠子',
                 init: true,
             },
         },
