@@ -25,27 +25,52 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return orb;
             },
             orbList: {
-                get node() {
-                    /** FIXME: rewrite with Intersection Observer API!!! */
-                    delete this.node;
+                descMap: null,
+                node: null,
+                build(config = {}) {
+                    if (this.node) {
+                        this.node.remove();
+                    }
+                    this.descMap = {};
                     internals.setupData();
                     let node = document.createElement("div");
+                    this.node = node;
                     node.classList.add('orblist', 'jlsgbujiang');
+                    if (internals.data.newOrbs.length > 500) {
+                        internals.data.newOrbs.length = 500;
+                        internals.save();
+                    }
+                    // TODO: apply custom sort & filter
+                    let _newOrbs = new Set(internals.data.newOrbs)
+                    let toRenders = Object.keys(internals.data.orbs).filter(o => !_newOrbs.has(o));
                     for (let id of internals.data.newOrbs) {
                         if (internals.data.orbs[id]) {
                             let disc = this._makeOrbDesc(id);
                             node.prepend(disc.node);
                         }
                     }
-                    for (let id in internals.data.orbs) {
-                        if (internals.data.newOrbs.contains(id)) {
-                            continue;
-                        }
-                        let disc = this._makeOrbDesc(id);
-                        node.appendChild(disc.node);
+                    let options = {
+                        root: node,
+                        rootMargin: '100%',
                     }
-                    this.node = node;
-                    return this.node;
+                    let renderMore = (entries, observer) => {
+                        if (entries.some(e => e.isIntersecting)) {
+                            observer.disconnect();
+                            let desc, orbs = toRenders.splice(0, 100);
+                            for (let id of orbs) {
+                                desc = this._makeOrbDesc(id);
+                                node.appendChild(desc.node);
+                                this.descMap[id] = desc;
+                            }
+                            if (toRenders.length) {
+                                observer.observe(desc);
+                            }
+                        }
+                        
+                    }
+                    let observer = new IntersectionObserver(callback, options);
+                    observer.observe(node);
+                    return node;
                 },
                 gainOrbs(orbs) {
                     internals.data.newOrbs.push(...orbs);
@@ -243,6 +268,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     left.style.cssText = "inset: 0 50% 0 0";
                     let right = document.createElement("div"); node.appendChild(right);
                     right.style.cssText = "inset: 0 0 0 50%";
+                    internals.panel.orbList.build();
                     left.appendChild(internals.panel.orbList.node);
                     this.suitDesc.init();
                     let descText = this.suitDesc.node; right.appendChild(descText);
