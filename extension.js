@@ -25,7 +25,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return orb;
             },
             orbList: {
-                descMap: null,
+                descMap: {}, // orbID -> {node, id, orb}
                 node: null,
                 build(config = {}) {
                     if (this.node) {
@@ -34,10 +34,16 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.descMap = {};
                     internals.setupData();
                     let node = document.createElement("div");
+                    // if(lib.config.touchscreen){
+                    //     lib.setScroll(node);
+                    // }
+                    // if(lib.config.mousewheel){
+                    //     node.onmousewheel=ui.click.mousewheel;
+                    // }
                     this.node = node;
                     node.classList.add('orblist', 'jlsgbujiang');
-                    if (internals.data.newOrbs.length > 500) {
-                        internals.data.newOrbs.length = 500;
+                    if (internals.data.newOrbs.length > 300) {
+                        internals.data.newOrbs.length = 300;
                         internals.save();
                     }
                     // TODO: apply custom sort & filter
@@ -63,13 +69,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 this.descMap[id] = desc;
                             }
                             if (toRenders.length) {
-                                observer.observe(desc);
+                                observer.observe(desc.node);
                             }
                         }
                         
                     }
-                    let observer = new IntersectionObserver(callback, options);
-                    observer.observe(node);
+                    let observer = new IntersectionObserver(renderMore, options);
+                    let tempC = document.createElement('div'); node.appendChild(tempC);
+                    observer.observe(tempC);
                     return node;
                 },
                 gainOrbs(orbs) {
@@ -88,12 +95,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let data = internals.data.orbs[orbID];
                     if (!data) return;
                     let node = document.createElement("div");
-                    node.classList.add('orbdesc', 'jlsgbujiang', 'menubg'); //'popup-container'
-                    if (internals.data.newOrbs.contains(orbID)) {
+                    node.classList.add('orbdesc', 'jlsgbujiang', 'menubg');
+                    if (this._inUse.includes(orbID)) {
+                        node.classList.add('inuse');
+                    }
+                    if (internals.data.newOrbs.contains(orbID)) { // add red dot
                         let redDot = document.createElement("div");
                         redDot.classList.add('reddot', 'jlsgbujiang');
                         node.appendChild(redDot);
-                        node.addEventListener('mouseenter', e => {
+                        node.addEventListener('mouseenter', e => { // TODO: ways to clear red dot on mobile devices
                             node.querySelector('.reddot').style.opacity = 0;
                             internals.data.newOrbs.remove(orbID);
                             internals.save();
@@ -126,13 +136,40 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         orb: orb,
                     }
                 },
-                newOrbs: null,
+                _inUse: [],
+                updateInUse(orbs) {
+                    this._inUse.filter(o => !orbs.includes(o)).forEach(o => this.removeInUse(o));
+                    orbs.filter(o => !this._inUse.includes(o)).forEach(o => this.addInUse(o));
+                },
+                addInUse(orb) {
+                    if (this._inUse.includes(orb)) {
+                        return;
+                    }
+                    this._inUse.push(orb);
+                    let desc = this.descMap[orb];
+                    if (desc) {
+                        desc.node.classList.add('inuse');
+                    }
+                },
+                removeInUse(orb) {
+                    if (!this._inUse.includes(orb)) {
+                        return;
+                    }
+                    this._inUse.remove(orb);
+                    let desc = this.descMap[orb];
+                    if (desc) {
+                        desc.node.classList.remove('inuse');
+                    }
+                }
             },
             suitDisk: {
-                // node: null, // maybe no global one?
-                init(data, interactive) {
+                node: null,
+                build(data, interactive) {
                     node = document.createElement("div");
                     node.classList.add('suitdisk', 'jlsgbujiang');
+                    if (interactive) {
+                        this.node = node;
+                    }
                     let children = [[], [], []];
                     for (let i of Array(3).keys()) {
                         for (let j of Array(3).keys()) {
@@ -169,7 +206,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             suitPage: {
                 node: null,
-                suit: null,
+                suitIdx: 0,
+                suitDisk: null,
                 suitDesc: {
                     node: null,
                     hpNode: null,
@@ -272,9 +310,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     left.appendChild(internals.panel.orbList.node);
                     this.suitDesc.init();
                     let descText = this.suitDesc.node; right.appendChild(descText);
-                    let suitData = internals.data.suits[0];
-                    this.suit = internals.panel.suitDisk.init(suitData, true);
-                    right.appendChild(this.suit.node);
+                    let suitData = internals.data.suits[this.suitIdx];
+                    internals.panel.orbList.updateInUse(suitData.orbs.flat().filter(o => o));
+                    this.suitDisk = internals.panel.suitDisk.build(suitData, true);
+                    right.appendChild(this.suitDisk.node);
                     let suitReport = internals.report(suitData.orbs);
                     this.suitDesc.update(suitReport);
                 },
@@ -410,7 +449,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             //     this.panel.node.appendChild(disc.node);
 
             // }
-            // let suitDisk = this.panel.suitDisk.init(this.data.suits[0], true);
+            // let suitDisk = this.panel.suitDisk.build(this.data.suits[0], true);
             // this.panel.node.appendChild(suitDisk.node);
             // debug skill requirement
             // let targets = Object.keys(lib.character).randomGets(10);
@@ -891,7 +930,17 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 A = h % need;
                 if (A < 0) A += need;
                 return A;
-            }
+            },
+            _randomFill(num = 750) {
+                let availC = Object.keys(lib.character).filter(c => !lib.filter.characterDisabled(c));
+                let orbs = [];
+                for (let _ of Array(num).keys()) {
+                    let skills = lib.character[availC.randomGet()][3].concat(lib.character[availC.randomGet()][3]);
+                    skills = skills.randomGets([1, 2].randomGet());
+                    orbs.push(internals.generateRandomOrb(...skills));
+                }
+                internals.gainOrbs(orbs);
+            },
         }
     };
     return {

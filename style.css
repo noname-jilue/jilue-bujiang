@@ -22,6 +22,12 @@ a.jlsgbujiang {
     height: 100%;
     width: 100%;
 }
+.orblist.jlsgbujiang {
+    inset: 0;
+    overflow: scroll;
+    mask-image: linear-gradient(rgba(0,0,0,1) 95%, rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(rgba(0,0,0,1) 95%, rgba(0,0,0,0));
+}
 .reddot.jlsgbujiang {
     background: rgba(255, 0, 0, 0.8);
     border-radius: 100%;
@@ -42,6 +48,10 @@ a.jlsgbujiang {
 }
 .orbdesc.jlsgbujiang > .orb {
     inset: calc(var(--trans) * 3px);
+}
+.orbdesc.jlsgbujiang.inuse > .orb {
+    opacity: 0.3;
+    filter: blur(3px);
 }
 .orb.jlsgbujiang > * {
     position: absolute;
