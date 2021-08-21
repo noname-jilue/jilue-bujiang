@@ -51,13 +51,16 @@ a.jlsgbujiang {
 }
 .orbdesc.jlsgbujiang.inuse > .orb {
     opacity: 0.3;
-    filter: blur(3px);
+    filter: blur(3px) grayscale(0.6);
 }
 .orb.jlsgbujiang > * {
     position: absolute;
     /* inset: calc(var(--trans) * 3px); */
     /* height: calc(var(--trans) * 68px); */
     height: 100%;
+}
+.orb.jlsgbujiang.focused {
+    filter: drop-shadow(2px 4px 6px red);
 }
 .desctextbox.jlsgbujiang {
     flex-direction: column;

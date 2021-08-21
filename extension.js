@@ -5,8 +5,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         panel: {
             node: null,
             _makeOrb(orbData) {
-                /** TODO: make empty orb */
                 let orb = document.createElement("div");
+                orb.setAttribute('tabindex', '-1');
                 orb.classList.add('orb', 'jlsgbujiang');
                 let img = document.createElement("img"); orb.appendChild(img);
                 if (!orbData) { // empty orb
@@ -72,7 +72,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 observer.observe(desc.node);
                             }
                         }
-                        
+
                     }
                     let observer = new IntersectionObserver(renderMore, options);
                     let tempC = document.createElement('div'); node.appendChild(tempC);
@@ -110,7 +110,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         });
                     }
                     let orb = internals.panel._makeOrb(data); node.appendChild(orb);
+                    orb.addEventListener('click', e => {
+                        if (game.getExtensionConfig('部将', 'quickSwap')) {
+                            if (this._inUse.includes(orbID)) {
+                                internals.panel.unequipOrb(orbID);
+                            } else {
+                                internals.panel.equipOrb(orbID);
 
+                            }
+                        } else {
+                            // TODO: create action list tip
+                            throw 'not implemented';
+                        }
+                    });
                     let textBox = document.createElement("div"); node.appendChild(textBox);
                     textBox.classList.add('desctextbox', 'jlsgbujiang');
                     // TODO: add right click popup & always show requirement toggle
@@ -164,34 +176,44 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             suitDisk: {
                 node: null,
+                orbs: null,
                 build(data, interactive) {
                     node = document.createElement("div");
                     node.classList.add('suitdisk', 'jlsgbujiang');
                     if (interactive) {
                         this.node = node;
+                        this.orbs = JSON.parse(JSON.stringify(data.orbs));
                     }
                     let children = [[], [], []];
                     for (let i of Array(3).keys()) {
                         for (let j of Array(3).keys()) {
                             let orb = data.orbs[i][j], orbNode;
                             if (!orb || !internals.data.orbs[orb]) {
-                                orbNode = document.createElement("div");
-                                orbNode.classList.add('orb', 'jlsgbujiang');
+                                orbNode = internals.panel._makeOrb();
                             } else {
                                 orbNode = internals.panel._makeOrb(internals.data.orbs[orb]);
-                                orbNode.addEventListener('click', e => {
-                                    // TODO: update orbs in use
-                                    if (game.getExtensionConfig('部将', 'quickSwap')) {
-                                        let newChild = internals.panel._makeOrb();
-                                        node.replaceChild(newChild, orbNode);
-                                        newChild.addEventListener('click', e => {
-                                            node.replaceChild(orbNode, newChild);
-                                        });
-                                    } else {
-                                        // create action list tip
-                                        throw 'not implemented';
-                                    }
-                                })
+                                if (interactive) {
+                                    orbNode.addEventListener('click', e => {
+                                        if (game.getExtensionConfig('部将', 'quickSwap')) {
+                                            let newChild = this.unequipOrb(orb);
+                                            e => {
+                                                this.orbs[i][j] = orb;
+                                                this.update();
+                                                node.replaceChild(orbNode, newChild);
+                                                this.focus = [i, j];
+                                                internals.panel.focus(orbNode);
+                                                internals.panel.orbList.addInUse(orb);
+                                            };
+                                            newChild.addEventListener('click', undoCallback, { once: true });
+                                            internals.panel.removeUndo = () => {
+                                                newChild.removeEventListener('click', undoCallback);
+                                            }
+                                        } else {
+                                            // TODO: create action list tip
+                                            throw 'not implemented';
+                                        }
+                                    });
+                                }
                             }
                             children[i].push(orbNode);
                             node.appendChild(orbNode);
@@ -203,6 +225,35 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         orbs: children,
                     }
                 },
+                unequipOrb(orbID) {
+                    let newChild = internals.panel._makeOrb(); // generate place holder
+                    for (let i of Array(3).keys()) {
+                        for (let j of Array(3).keys()) {
+                            if (this.orbs[i][j] == orbID) {
+                                let oldChild = this.node.children[i * 3 + j];
+                                this.orbs[i][j] = null; // remove orb in data
+                                this.update(); //  update description
+                                internals.panel.orbList.removeInUse(orb);
+                                node.replaceChild(newChild, oldChild);
+                                this.focus = [i, j];
+                                internals.panel.focus(newChild);
+                            }
+                        }
+                    }
+                    return newChild;
+                },
+                equipOrb(orbID) {
+                    if (!this.focus) return;
+                    let [i, j] = this.focus;
+                    console.assert(this.node.children[i * 3 + j].classList.contains('focused'));
+                    // next TODO
+                },
+                update() {
+                    if (this.node && this.data) {
+                        let report = internals.report(this.orbs);
+                        internals.panel.suitPage.suitDesc.update(report);
+                    }
+                }
             },
             suitPage: {
                 node: null,
@@ -334,6 +385,38 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 this._loadText.style.opacity = toggle ? 1 : 0;
             },
+            get currentPage() {
+                if (this.node.contains(this.suitPage.node)) {
+                    return 'suit';
+                }
+                return null;
+            },
+            get removeUndo() {
+                return this._removeUndo
+                    ? () => { let temp = this._removeUndo; delete this._removeUndo; temp(); }
+                    : (() => { });
+            },
+            set removeUndo(value) {
+                if (this._removeUndo) {
+                    this._removeUndo();
+                }
+                this._removeUndo = value;
+                return this._removeUndo;
+            },
+            /**
+             * change focus
+             * @param {Node} node 
+             */
+            focus(node) {
+                this.__focus = node;
+                this.removeUndo();
+                if (this.node) {
+                    this.node.querySelectorAll('.jlsgbujiang .focused').forEach(e => e.classList.remove('focused'));
+                    if (node) {
+                        node.classList.add('focused')
+                    }
+                }
+            }
         },
         async show() {
             console.log('bujiang show');
