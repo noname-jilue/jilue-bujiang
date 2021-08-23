@@ -4,6 +4,29 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
     const internals = {
         panel: {
             node: null,
+            init() {
+                if (!this.node) throw "no panel node attached";
+                let list = this.pagesList.init();
+                this.node.appendChild(list);
+                this.suitPage.show();
+            },
+            pagesList: {
+                node: null,
+                init() {
+                    let node = document.createElement('div');
+                    node.classList.add('jlsgbujiang', 'pageslist');
+                    this.node = node;
+                    node.appendChild(this._buildItem('装配', internals.panel.suitPage.show));
+                    node.appendChild(this._buildItem('合成', internals.panel.mixPage.show));
+                    return node;
+                },
+                _buildItem(text, callback) {
+                    let item = document.createElement('div');
+                    item.innerText = text;
+                    item.onclick = callback;
+                    return item;
+                },
+            },
             _makeOrb(orbData) {
                 let orb = document.createElement("div");
                 orb.setAttribute('tabindex', '-1');
@@ -367,7 +390,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                 },
                 init() {
-                    let node = document.createElement("div"); node.style.cssText = "inset: 0";
+                    let node = document.createElement("div"); /* node.style.cssText = "inset: 0"; */
+                    node.classList.add('page-content');
                     this.node = node;
                     let left = document.createElement("div"); node.appendChild(left);
                     left.style.cssText = "inset: 0 50% 0 0";
@@ -390,6 +414,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                     internals.panel.node.appendChild(this.node);
                 }
+            },
+            mixPage: {
+                node: null,
+                init() {
+
+                },
+                show() {
+                    if (!this.node) {
+                        this.init();
+                    }
+                    internals.panel.node.appendChild(this.node);
+                },
             },
             loadText(toggle) {
                 if (!this.node) return;
@@ -559,7 +595,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (this.bonusReady) {
                 // alert daily bonus
             }
-            this.panel.suitPage.show();
+            this.panel.init();
             // debug
             // for (let id in this.data.orbs) {
             //     let disc = this.panel.orbList._makeOrbDesc(id);
