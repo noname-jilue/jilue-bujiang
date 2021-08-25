@@ -54,6 +54,10 @@ a.jlsgbujiang {
     width: 100%;
 }
 .orblist.jlsgbujiang {
+    line-height: 0;
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
     padding: 0 3px;
     inset: 0;
     overflow: scroll;
@@ -71,15 +75,39 @@ a.jlsgbujiang {
     padding: 6px;
     transition: 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
-.orbdesc.jlsgbujiang {
-    --width: 148px;
-    width: calc(var(--trans) * var(--width));
-    height: calc(var(--trans) * var(--width) / 2);
-    position: relative;
-    margin: calc(var(--trans) * 7px);
+.orbdesc.jlsgbujiang::after {
+    content: '';
+    display: block;
+    padding-bottom: 50%;
 }
+.orbdesc.jlsgbujiang {
+    position: relative;
+    margin: 5px;
+    display: inline-flex;
+}
+.orblist.jlsgbujiang > .orbdesc {
+    flex: 1 0 14%;
+}
+@media (max-width: 2050px) {
+    .orblist.jlsgbujiang > .orbdesc {
+        flex-basis: 16%;
+    }
+}
+@media (max-width: 1650px) {
+    .orblist.jlsgbujiang > .orbdesc {
+        flex-basis: 20%;
+    }
+}
+@media (max-width: 1250px) {
+    .orblist.jlsgbujiang > .orbdesc {
+        flex-basis: 25%;
+    }
+}
+  
 .orbdesc.jlsgbujiang > .orb {
-    inset: calc(var(--trans) * 3px);
+    margin: 2% 1.5% 1.5% 2%;
+    flex: 1;
+    position: relative;
 }
 .orbdesc.jlsgbujiang.inuse > .orb {
     opacity: 0.3;
@@ -95,8 +123,10 @@ a.jlsgbujiang {
     filter: drop-shadow(2px 4px 6px red);
 }
 .desctextbox.jlsgbujiang {
-    flex-direction: column;
+    flex: 1;
+    position: relative;
     display: inline-flex;
+    flex-direction: column;
     left: calc(var(--trans) * var(--width) / 2);
     width: calc(var(--trans) * var(--width) / 2);
     height: calc(var(--trans) * var(--width) / 2);
