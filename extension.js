@@ -974,6 +974,52 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return result;
             };
             let rewards = resolveRewards();
+            let winDialog = document.querySelector('.dialog > .content-container');
+            if (winDialog) {
+                winDialog = winDialog.parentElement;
+                winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1)';
+                let node = document.createElement('div');
+                node.classList.add('jlsgbujiang', 'dialog', 'withbg');
+                winDialog.prepend(node);
+                Object.assign(node.style, {
+                    top: 0,
+                    left: 'calc(100% + 5px)',
+                    textAlign: 'left',
+                    transition: 'all 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                    transform: 'scale(1)',
+                    cursor: 'pointer',
+                    width: 'auto',
+                    height: 'auto',
+                    minHeight: 'unset',
+                    bottom: 'unset',
+                    // position: 'absolute'
+                });
+                {
+                    let text = document.createElement('div'); node.appendChild(text);
+                    text.innerHTML = '部将<br>收获';
+                    Object.assign(text.style, {
+                        fontSize: '26px',
+                        fontFamily: 'STXinwei, xinwei',
+                        transition: 'opacity 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                        position: 'relative',
+                        whiteSpace: 'nowrap',
+                    });
+                    node.addEventListener('click', e => {
+                        text.style.opacity = 0;
+                        text.addEventListener('transitionend', e => {
+                            text.remove();
+                        }, {once: true});
+                        node.style.height = winDialog.offsetHeight;
+                        node.style.cursor = '';
+                        node.addEventListener('transitionend', e => {
+                            node.style.width = '280px';
+                            node.style.transform += 'translateX(-140px)';
+                            winDialog.style.transform += 'translateX(-140px)';
+                        }, {once: true});
+                    }, {once: true});
+                }
+                
+            }
             this.gainOrbs(rewards);
         },
         generateRandomOrb(name1, name2) {
