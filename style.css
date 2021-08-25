@@ -30,6 +30,9 @@ a.jlsgbujiang {
     flex-direction: column;
     width: 100%;
 }
+.pageslist.jlsgbujiang > *[active] {
+    box-shadow: inset -2px 0px #32a852;
+}
 .pageslist.jlsgbujiang > *:hover {
     background-color: rgba(32,33,36,.04);
 }

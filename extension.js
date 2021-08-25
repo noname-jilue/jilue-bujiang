@@ -16,14 +16,22 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     node.classList.add('jlsgbujiang', 'pageslist');
                     this.node = node;
-                    node.appendChild(this._buildItem('装配', internals.panel.suitPage.show));
-                    node.appendChild(this._buildItem('合成', internals.panel.mixPage.show));
+                    let suitPageEntry = this._buildItem('装配', () => internals.panel.suitPage.show());
+                    suitPageEntry.setAttribute('active', '');
+                    node.appendChild(suitPageEntry);
+                    node.appendChild(this._buildItem('合成', () => internals.panel.mixPage.show()));
                     return node;
                 },
                 _buildItem(text, callback) {
                     let item = document.createElement('div');
                     item.innerText = text;
-                    item.onclick = callback;
+                    item.addEventListener('click', function (e) {
+                        for (let sib of e.currentTarget.parentElement.children) {
+                            sib.removeAttribute('active');
+                        }
+                        callback();
+                        e.currentTarget.setAttribute('active', '');
+                    })
                     return item;
                 },
             },
@@ -409,6 +417,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.suitDesc.update(suitReport);
                 },
                 show() {
+                    if (internals.panel.currentPage == 'suit') {
+                        return;
+                    }
                     if (!this.node) {
                         this.init();
                     }
@@ -421,6 +432,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
 
                 },
                 show() {
+                    if (internals.panel.currentPage == 'mix') {
+                        return;
+                    }
                     if (!this.node) {
                         this.init();
                     }
@@ -458,6 +472,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             get currentPage() {
                 if (this.node.contains(this.suitPage.node)) {
                     return 'suit';
+                }
+                if (this.node.contains(this.mixPage.node)) {
+                    return 'mix';
                 }
                 return null;
             },
