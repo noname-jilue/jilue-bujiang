@@ -54,7 +54,7 @@ a.jlsgbujiang {
     width: 100%;
 }
 .orblist.jlsgbujiang {
-    line-height: 0;
+    /* line-height: 0; */
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
@@ -84,10 +84,10 @@ a.jlsgbujiang {
     position: relative;
     margin: 5px;
     display: inline-flex;
+    min-width: 100px;
 }
 .orblist.jlsgbujiang > .orbdesc {
     flex: 1 0 14%;
-    min-width: 90px;
 }
 @media (max-width: 2050px) {
     .orblist.jlsgbujiang > .orbdesc {
@@ -237,4 +237,15 @@ a.jlsgbujiang {
     position: absolute;
     top:  calc(var(--trans) * var(--y2));
     left: calc(var(--trans) * var(--x2));
+}
+
+.jlsgbujiang.dialog[orblist] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-evenly;
+}
+.jlsgbujiang.dialog[orblist] > .orbdesc {
+    flex: 0 0 45%;
+    overflow: scroll;
 }

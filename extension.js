@@ -909,13 +909,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     coeff1 /= 2;
                     coeff2 /= 2;
                 }
-                if (me.getAllHistory('useCard').length < 5) {
-                    coeff1 /= 4;
-                    coeff2 /= 4;
+                // FIXME !
+                if (me.getAllHistory('useCard').length < 5) { // penalty for fast-forward
+                    // coeff1 /= 4;
+                    // coeff2 /= 4;
                 } else {
                     if (result) {
-                        coeff1 *= 2;
-                        coeff2 *= 2;
+                        coeff1 *= 1.5;
+                        coeff2 *= 1.5;
                     }
                 }
                 let cnt1 = 0, cnt2 = 0, revive = true;
@@ -974,53 +975,68 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return result;
             };
             let rewards = resolveRewards();
-            let winDialog = document.querySelector('.dialog > .content-container');
-            if (winDialog) {
-                winDialog = winDialog.parentElement;
-                winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1)';
-                let node = document.createElement('div');
-                node.classList.add('jlsgbujiang', 'dialog', 'withbg');
-                winDialog.prepend(node);
-                Object.assign(node.style, {
-                    top: 0,
-                    left: 'calc(100% + 5px)',
-                    textAlign: 'left',
-                    transition: 'all 0.5s cubic-bezier(0, 0, 0.2, 1)',
-                    transform: 'scale(1)',
-                    cursor: 'pointer',
-                    width: 'auto',
-                    height: 'auto',
-                    minHeight: 'unset',
-                    bottom: 'unset',
-                    // position: 'absolute'
-                });
-                {
-                    let text = document.createElement('div'); node.appendChild(text);
-                    text.innerHTML = '部将<br>收获';
-                    Object.assign(text.style, {
-                        fontSize: '26px',
-                        fontFamily: 'STXinwei, xinwei',
-                        transition: 'opacity 0.5s cubic-bezier(0, 0, 0.2, 1)',
-                        position: 'relative',
-                        whiteSpace: 'nowrap',
+            let gainedIDs = this.gainOrbs(rewards);
+            setTimeout(() => {
+                let winDialog = document.querySelector('.dialog > .content-container');
+                if (winDialog) {
+                    winDialog = winDialog.parentElement;
+                    winDialog.style.transform += 'translateX(0px)';
+                    let node = document.createElement('div');
+                    node.classList.add('jlsgbujiang', 'dialog', 'withbg');
+                    winDialog.prepend(node);
+                    Object.assign(node.style, {
+                        top: 0,
+                        left: 'calc(100% + 5px)',
+                        textAlign: 'left',
+                        transition: 'all 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                        transform: 'scale(1)',
+                        cursor: 'pointer',
+                        width: 'auto',
+                        height: 'auto',
+                        minWidth: '0',
+                        minHeight: '0',
+                        bottom: 'unset',
+                        // position: 'absolute'
                     });
-                    node.addEventListener('click', e => {
-                        text.style.opacity = 0;
-                        text.addEventListener('transitionend', e => {
-                            text.remove();
+                    {
+                        let text = document.createElement('div'); node.appendChild(text);
+                        text.innerHTML = '部将<br>收获';
+                        Object.assign(text.style, {
+                            fontSize: '26px',
+                            fontFamily: 'STXinwei, xinwei',
+                            transition: 'opacity 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                            position: 'relative',
+                            whiteSpace: 'nowrap',
+                        });
+                        node.addEventListener('click', e => {
+                            text.style.opacity = 0;
+                            node.style.minHeight = winDialog.offsetHeight +'px';
+                            node.style.cursor = '';
+                            node.addEventListener('transitionend', e => {
+                                node.style.minWidth = '280px';
+                                winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
+                                winDialog.style.transform = 
+                                winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
+                                node.addEventListener('transitionend', e2 => {
+                                    if (e2 === e) return;
+                                    if (!gainedIDs.length) {
+                                        text.innerText = '很遗憾没有收获';
+                                        text.style.opacity = 1;
+                                    } else {
+                                        text.remove();
+                                        node.setAttribute('orblist', '');
+                                        for (let id of gainedIDs) {
+                                            let disc = this.panel.orbList._makeOrbDesc(id);
+                                            node.appendChild(disc.node);
+                                        }
+                                    }
+                                }, {once: true});
+                            }, {once: true});
                         }, {once: true});
-                        node.style.height = winDialog.offsetHeight;
-                        node.style.cursor = '';
-                        node.addEventListener('transitionend', e => {
-                            node.style.width = '280px';
-                            node.style.transform += 'translateX(-140px)';
-                            winDialog.style.transform += 'translateX(-140px)';
-                        }, {once: true});
-                    }, {once: true});
+                    }
+                    
                 }
-                
-            }
-            this.gainOrbs(rewards);
+            })
         },
         generateRandomOrb(name1, name2) {
             // color
