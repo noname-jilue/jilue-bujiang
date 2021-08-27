@@ -89,17 +89,17 @@ a.jlsgbujiang {
 .orblist.jlsgbujiang > .orbdesc {
     flex: 1 0 14%;
 }
-@media (max-width: 2050px) {
+@media (max-width: 1850px) {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 16%;
     }
 }
-@media (max-width: 1650px) {
+@media (max-width: 1550px) {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 20%;
     }
 }
-@media (max-width: 1250px) {
+@media (max-width: 1150px) {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 25%;
     }
@@ -244,8 +244,8 @@ a.jlsgbujiang {
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-evenly;
+    overflow: scroll;
 }
 .jlsgbujiang.dialog[orblist] > .orbdesc {
     flex: 0 0 45%;
-    overflow: scroll;
 }

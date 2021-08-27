@@ -908,11 +908,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     coeff2 = this.config.coeffMap[get.rank(me.name2)];
                     coeff1 /= 2;
                     coeff2 /= 2;
+                    // mix coeff
+                    let diff = coeff1 - coeff2;
+                    coeff1 -= 0.1 * diff;
+                    coeff2 += 0.1 * diff;
                 }
-                // FIXME !
                 if (me.getAllHistory('useCard').length < 5) { // penalty for fast-forward
-                    // coeff1 /= 4;
-                    // coeff2 /= 4;
+                    coeff1 /= 4;
+                    coeff2 /= 4;
                 } else {
                     if (result) {
                         coeff1 *= 1.5;
@@ -978,65 +981,72 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             let gainedIDs = this.gainOrbs(rewards);
             setTimeout(() => {
                 let winDialog = document.querySelector('.dialog > .content-container');
-                if (winDialog) {
-                    winDialog = winDialog.parentElement;
-                    winDialog.style.transform += 'translateX(0px)';
-                    let node = document.createElement('div');
-                    node.classList.add('jlsgbujiang', 'dialog', 'withbg');
-                    winDialog.prepend(node);
-                    Object.assign(node.style, {
-                        top: 0,
-                        left: 'calc(100% + 5px)',
-                        textAlign: 'left',
-                        transition: 'all 0.5s cubic-bezier(0, 0, 0.2, 1)',
-                        transform: 'scale(1)',
-                        cursor: 'pointer',
-                        width: 'auto',
-                        height: 'auto',
-                        minWidth: '0',
-                        minHeight: '0',
-                        bottom: 'unset',
-                        // position: 'absolute'
+                if (!winDialog) {
+                    winDialog = ui.dialog;
+                    if (winDialog) {
+                        console.log(ui.dialog);
+                    } else {
+                        console.warn('no end game dialog found');
+                        return;
+                    }
+                }
+                winDialog = winDialog.parentElement;
+                winDialog.style.transform += 'translateX(0px)';
+                let node = document.createElement('div');
+                node.classList.add('jlsgbujiang', 'dialog', 'withbg');
+                winDialog.prepend(node);
+                Object.assign(node.style, {
+                    top: 0,
+                    left: 'calc(100% + 5px)',
+                    textAlign: 'left',
+                    transition: 'all 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                    transform: 'scale(1)',
+                    cursor: 'pointer',
+                    width: 'auto',
+                    height: 'auto',
+                    minWidth: '0',
+                    minHeight: '0',
+                    bottom: 'unset',
+                    // position: 'absolute'
+                });
+                {
+                    let text = document.createElement('div'); node.appendChild(text);
+                    text.innerHTML = '部将<br>收获';
+                    Object.assign(text.style, {
+                        fontSize: '26px',
+                        fontFamily: 'STXinwei, xinwei',
+                        transition: 'opacity 0.5s cubic-bezier(0, 0, 0.2, 1)',
+                        position: 'relative',
+                        whiteSpace: 'nowrap',
                     });
-                    {
-                        let text = document.createElement('div'); node.appendChild(text);
-                        text.innerHTML = '部将<br>收获';
-                        Object.assign(text.style, {
-                            fontSize: '26px',
-                            fontFamily: 'STXinwei, xinwei',
-                            transition: 'opacity 0.5s cubic-bezier(0, 0, 0.2, 1)',
-                            position: 'relative',
-                            whiteSpace: 'nowrap',
-                        });
-                        node.addEventListener('click', e => {
-                            text.style.opacity = 0;
-                            node.style.minHeight = winDialog.offsetHeight +'px';
-                            node.style.cursor = '';
-                            node.addEventListener('transitionend', e => {
-                                node.style.minWidth = '280px';
-                                winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
-                                winDialog.style.transform = 
-                                winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
-                                node.addEventListener('transitionend', e2 => {
-                                    if (e2 === e) return;
-                                    if (!gainedIDs.length) {
-                                        text.innerText = '很遗憾没有收获';
-                                        text.style.opacity = 1;
-                                    } else {
-                                        text.remove();
-                                        node.setAttribute('orblist', '');
-                                        for (let id of gainedIDs) {
-                                            let disc = this.panel.orbList._makeOrbDesc(id);
-                                            node.appendChild(disc.node);
-                                        }
+                    node.addEventListener('click', e => {
+                        text.style.opacity = 0;
+                        node.style.minHeight = winDialog.offsetHeight +'px';
+                        // node.style.maxHeight = winDialog.offsetHeight +'px';
+                        node.style.cursor = '';
+                        node.addEventListener('transitionend', e => {
+                            node.style.minWidth = '280px';
+                            winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
+                            winDialog.style.transform = 
+                            winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
+                            node.addEventListener('transitionend', e2 => {
+                                if (e2 === e) return;
+                                if (!gainedIDs.length) {
+                                    text.innerText = '很遗憾没有收获';
+                                    text.style.opacity = 1;
+                                } else {
+                                    text.remove();
+                                    node.setAttribute('orblist', '');
+                                    for (let id of gainedIDs) {
+                                        let disc = this.panel.orbList._makeOrbDesc(id);
+                                        node.appendChild(disc.node);
                                     }
-                                }, {once: true});
+                                }
                             }, {once: true});
                         }, {once: true});
-                    }
-                    
+                    }, {once: true});
                 }
-            })
+            }, 300)
         },
         generateRandomOrb(name1, name2) {
             // color
@@ -1250,11 +1260,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         setTimeout(() => {
                             document.querySelector('.menu-tab :nth-child(5)').addEventListener('pointerup', evt => {
                                 var cNode = evt.currentTarget;
+                                setTimeout(function () {
+                                    cNode._doubleClicking = false;
+                                }, 500);
                                 if (!cNode._doubleClicking) {
                                     cNode._doubleClicking = true;
-                                    setTimeout(function () {
-                                        cNode._doubleClicking = false;
-                                    }, 500);
                                     return;
                                 }
                                 // ui.click.skin(this,player.name);
