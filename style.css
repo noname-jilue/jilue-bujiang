@@ -57,6 +57,7 @@ a.jlsgbujiang {
     /* line-height: 0; */
     display: flex;
     align-items: flex-start;
+    align-content: start;
     flex-wrap: wrap;
     padding: 0 3px;
     inset: 0;
@@ -70,6 +71,8 @@ a.jlsgbujiang {
     box-shadow: rgb(0 0 0 / 20%) 1px -1px 2px inset, rgb(255 255 255 / 15%) -1px 1px 5px inset, rgba(0, 0, 0, 0.5) -1px 1px 2px;
 }
 .orbdesc.jlsgbujiang > .reddot {
+    backface-visibility: hidden;
+    transform: translateZ(0);
     top: -3px; 
     right: -5px; 
     padding: 6px;
@@ -85,10 +88,16 @@ a.jlsgbujiang {
     margin: 5px;
     display: inline-flex;
     min-width: 100px;
+    max-width: 150px;
 }
 .orblist.jlsgbujiang > .orbdesc {
     flex: 1 0 14%;
 }
+/* .orblist.jlsgbujiang::after {
+    content: '';
+    widteh: 100px;
+    flx-grow: 8;
+} */
 @media (max-width: 1850px) {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 16%;
@@ -136,6 +145,8 @@ a.jlsgbujiang {
     /* height: 100%; */
 }
 .desctextbox.jlsgbujiang > .line {
+    backface-visibility: hidden;
+    transform: translateZ(0);
     width: 75%;
     height: 1.5px;
     background: linear-gradient(to right,rgba(0,0,0,0), black, rgba(0,0,0,0));
@@ -144,10 +155,24 @@ a.jlsgbujiang {
     font-family: 'STXinwei','xinwei';
     font-size: calc(var(--trans) * 20px);
 }
+.suit-detail.jlsgbujiang {
+    inset: 0 0 0 50%;
+    display: grid;
+    /* align-items: center; */
+    grid-template-columns: 30% auto 45%;
+    grid-template-rows: 55% auto;
+    gap: 10px;
+    margin: 5px;
+}
+.suit-detail.jlsgbujiang > * {
+    position: relative;
+}
 .suitdesc.jlsgbujiang {
     position: relative;
     display: block;
     line-height: 1.5;
+    grid-row: 2;
+    grid-column: 1;
 }
 .suitdesc.jlsgbujiang > .hp {
     position: static;
@@ -171,8 +196,59 @@ a.jlsgbujiang {
     margin: 0;
     opacity: 0;
 }
-.suitdisk.jlsgbujiang, .suitdisk.jlsgbujiang * {
-    --trans: 0.5;
+.suit-detail.jlsgbujiang > .suitsdisks {
+    grid-row: 2;
+    grid-column: 2 / 4;
+    position: relative;
+}
+.suitsdisks.jlsgbujiang {
+    display: flex;
+    flex-direction: column;
+}
+.suitsdisks.jlsgbujiang .suit-name {
+    text-align: center;
+    position: relative;
+    display: block;
+    font-size: 24px;
+    font-family: xingkai, xinwei;
+    background-color: rgba(20,20,40,0.1);
+    margin: 0 5%;
+    border-radius: 4px;
+    color: black;
+    border: none;
+}
+.suitsdisks.jlsgbujiang > .suit-name:hover:not(:focus) {
+    background-color: rgba(20,20,40,0.2);
+}
+.suitsdisks.jlsgbujiang hr {
+    width: 90%;
+}
+.suitsdisks-inner-box.jlsgbujiang {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+.suitsdisks-inner-box.jlsgbujiang > button {
+    font-size: 1.5vw;
+    height: 90%;
+    /* opacity: 0.7; */
+}
+.suitsdisks-inner-box.jlsgbujiang > .suit-save {
+    display: flex;
+    bottom: 0;
+    margin-bottom: 5px;
+    left: calc(50% - 15px);
+    height: 34px;
+    padding: 0 6px;
+    font-size: 22px;
+    background-color: rgba(20,20,40,0.1);
+    border-radius: 4px;
+    color: rgba(255,0,0,0.7);
+}
+.suitsdisks-inner-box.jlsgbujiang > .suit-save:hover {
+    background-color: rgba(20,20,40,0.2);
 }
 .suitdisk.jlsgbujiang {
     position: relative;
@@ -245,6 +321,7 @@ a.jlsgbujiang {
     align-items: flex-start;
     justify-content: space-evenly;
     overflow: scroll;
+    align-content: start;
 }
 .jlsgbujiang.dialog[orblist] > .orbdesc {
     flex: 0 0 45%;

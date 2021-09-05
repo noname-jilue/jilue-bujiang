@@ -101,6 +101,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             }
                             if (toRenders.length) {
                                 observer.observe(desc.node);
+                            } else {
+                                let endLine = document.createElement('hr');
+                                Object.assign(endLine.style, {
+                                    width: '100%',
+                                    marginBottom: '50px',
+                                });
                             }
                         }
 
@@ -214,6 +220,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     if (interactive) {
                         this.node = node;
                         this.orbs = JSON.parse(JSON.stringify(data.orbs));
+                        internals.panel.orbList.updateInUse(data.orbs.flat().filter(o => o));
                     }
                     let children = [[], [], []];
                     for (let i of Array(3).keys()) {
@@ -238,7 +245,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         orbs: children,
                     }
                 },
-                _toggle(orbID){
+                _toggle(orbID) {
                     if (!orbID) { // focus
                         return e => {
                             if (e.currentTarget.classList.contains('focused')) {
@@ -271,9 +278,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.update();
                     internals.panel.orbList.addInUse(orbID);
                     let newChild = internals.panel._makeOrb(internals.data.orbs[orbID]);
-                    node.replaceChild(newChild, this.node.children[i * 3 + j]);
+                    this.node.children[i * 3 + j].replaceWith(newChild);
                     newChild.addEventListener('click', this._toggle(orbID));
                     internals.panel.focus(newChild);
+                    internals.panel.suitPage.suitsDisks.dirtyChanged();
                     return newChild;
                 },
                 unequipOrb(orbID) {
@@ -286,9 +294,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 this.orbs[i][j] = null; // remove orb in data
                                 this.update(); // update description
                                 internals.panel.orbList.removeInUse(orbID);
-                                node.replaceChild(newChild, oldChild);
+                                oldChild.replaceWith(newChild);
                                 this.focus = [i, j];
                                 internals.panel.focus(newChild);
+                                internals.panel.suitPage.suitsDisks.dirtyChanged();
                                 return newChild;
                             }
                         }
@@ -299,12 +308,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let report = internals.report(this.orbs);
                         internals.panel.suitPage.suitDesc.update(report);
                     }
+                },
+                get dirty() {
+                    return this.suitPage.suitsDisks.dirty;
                 }
             },
             suitPage: {
                 node: null,
-                suitIdx: 0,
-                suitDisk: null,
                 suitDesc: {
                     node: null,
                     hpNode: null,
@@ -397,6 +407,116 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.skills = [report.skills, report.potentialSkills];
                     }
                 },
+                suitsDisks: {
+                    node: null,
+                    suitIdx: 0,
+                    disk: null,
+                    get dirty() {
+                        return internals.panel.suitDisk.orbs &&
+                            JSON.stringify(internals.panel.suitDisk.orbs) != JSON.stringify(internals.data.suits[this.suitIdx].orbs);
+                    },
+                    dirtyChanged() {
+                        if (this.dirty) {
+                            this.saveNode.style.display = 'unset';
+                        } else {
+                            this.saveNode.style.display = 'none';
+                        }
+                    },
+                    init() {
+                        let node = document.createElement('div');
+                        node.classList.add('jlsgbujiang', 'suitsdisks');
+                        this.name = '未命名';
+                        node.appendChild(this._nameNode);
+                        node.appendChild(document.createElement('hr'));
+                        let suitData = internals.data.suits[this.suitIdx];
+                        internals.panel.suitDisk.build(suitData, true);
+                        let leftButton = document.createElement('button'); this._leftButton = leftButton;
+                        leftButton.disabled = true;
+                        leftButton.innerText = '⮜';
+                        leftButton.onclick = e => { --this.suitIdx; this.update(); }
+                        let rightButton = document.createElement('button'); this._rightButton = rightButton;
+                        rightButton.disabled = true;
+                        rightButton.innerText = '⮞';
+                        rightButton.onclick = e => { ++this.suitIdx; this.update(); }
+                        let saveNode = document.createElement('div'); this.saveNode = saveNode;
+                        saveNode.classList.add('suit-save');
+                        saveNode.innerText = '保存';
+                        saveNode.onclick = () => this.save();
+                        this.dirtyChanged();
+                        let diskContainer = document.createElement('div'); // bottom container
+                        diskContainer.classList.add('jlsgbujiang', 'suitsdisks-inner-box');
+                        node.appendChild(diskContainer);
+                        diskContainer.appendChild(leftButton);
+                        this._diskNode = document.createElement('div');
+                        diskContainer.appendChild(this._diskNode);
+                        diskContainer.appendChild(rightButton);
+                        diskContainer.appendChild(saveNode);
+                        /** TODO: actions: delete share */
+                        this.update();
+                        this.node = node;
+                        return node;
+                    },
+                    update() { // call when idx changes
+                        this._leftButton.disabled = this.suitIdx === 0;
+                        this._rightButton.disabled = this.suitIdx === internals.data.suits.length;
+                        if (this.suitIdx == internals.data.suits.length) {
+                            this.name = '点我新建套装';
+                            if (this._diskNode) {
+                                this._diskNode.style.display = 'none';
+                                // internals.panel.orbList.updateInUse([]);
+                            }
+                            console.log('not Implemented');
+                        } else {
+                            let suitData = internals.data.suits[this.suitIdx];
+                            this.name = suitData.name;
+                            internals.panel.suitDisk.build(suitData, true);
+                            this._diskNode.replaceWith(internals.panel.suitDisk.node);
+                            this._diskNode = internals.panel.suitDisk.node;
+                            let suitReport = internals.report(suitData.orbs); // update description
+                            internals.panel.suitPage.suitDesc.update(suitReport);
+                        }
+
+                    },
+                    save() {
+                        internals.data.suits[this.suitIdx] = {
+                            name: this.name,
+                            orbs: JSON.parse(JSON.stringify(internals.panel.suitDisk.orbs)),
+                        };
+                        internals.save();
+                        this.dirtyChanged();
+                    },
+                    _nameNode: null,
+                    get name() {
+                        return this._nameNode ? this._nameNode.value : '未命名';
+                    },
+                    set name(value) {
+                        if (!this._nameNode) {
+                            this._nameNode = document.createElement('input');
+                            this._nameNode.classList.add('suit-name');
+                            this._nameNode.addEventListener('blur', e => {
+                                let value = e.target.value.trim();
+                                if (!value) return;
+                                if (value != this.__nameMem) {
+                                    this.__nameMem = value;
+                                    if (this.suitIdx == internals.data.suits.length) {
+                                        internals.data.suits.push({
+                                            name: value,
+                                            orbs: [
+                                                [null, null, null],
+                                                [null, null, null],
+                                                [null, null, null],
+                                            ]
+                                        });
+                                        this.update();
+                                    }
+                                    this.save();
+                                }
+                            })
+                        }
+                        this.__nameMem = this._nameNode.value = value;
+                        // this._nameNode.innerText = value;
+                    }
+                },
                 init() {
                     let node = document.createElement("div"); /* node.style.cssText = "inset: 0"; */
                     node.classList.add('page-content');
@@ -404,17 +524,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let left = document.createElement("div"); node.appendChild(left);
                     left.style.cssText = "inset: 0 50% 0 0";
                     let right = document.createElement("div"); node.appendChild(right);
-                    right.style.cssText = "inset: 0 0 0 50%";
+                    right.classList.add('jlsgbujiang', 'suit-detail');
+                    right.appendChild(document.createElement('div')); // info / filter
+                    right.appendChild(document.createElement('div')); // avatar
                     internals.panel.orbList.build();
                     left.appendChild(internals.panel.orbList.node);
                     this.suitDesc.init();
                     let descText = this.suitDesc.node; right.appendChild(descText);
-                    let suitData = internals.data.suits[this.suitIdx];
-                    internals.panel.orbList.updateInUse(suitData.orbs.flat().filter(o => o));
-                    this.suitDisk = internals.panel.suitDisk.build(suitData, true);
-                    right.appendChild(this.suitDisk.node);
-                    let suitReport = internals.report(suitData.orbs);
-                    this.suitDesc.update(suitReport);
+                    this.suitsDisks.init();
+                    right.appendChild(this.suitsDisks.node);
                 },
                 show() {
                     if (internals.panel.currentPage == 'suit') {
@@ -565,17 +683,17 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 [0, 0.5, 0.5, 0, 0, 1],
             ],
             coeffMap: {
-                sp: 0.05,
-                s: 0.15,
-                ap: 0.25,
-                a: 0.40,
-                am: 0.55,
-                bp: 0.70,
-                b: 0.80,
-                bm: 0.90,
-                c: 0.95,
-                d: 1.00,
-                x: 0.30,
+                sp: 0.10,
+                s: 0.25,
+                ap: 0.40,
+                a: 0.55,
+                am: 0.75,
+                bp: 1.10,
+                b: 1.40,
+                bm: 1.80,
+                c: 2.10,
+                d: 2.40,
+                x: 0.50,
             },
         },
         async save() {
@@ -990,8 +1108,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         return;
                     }
                 }
+                console.log(winDialog);
                 winDialog = winDialog.parentElement;
-                winDialog.style.transform += 'translateX(0px)';
+                winDialog.style.transform += 'translateX(-1em)';
                 let node = document.createElement('div');
                 node.classList.add('jlsgbujiang', 'dialog', 'withbg');
                 winDialog.prepend(node);
@@ -1021,14 +1140,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     });
                     node.addEventListener('click', e => {
                         text.style.opacity = 0;
-                        node.style.minHeight = winDialog.offsetHeight +'px';
+                        node.style.minHeight = winDialog.offsetHeight + 'px';
                         // node.style.maxHeight = winDialog.offsetHeight +'px';
                         node.style.cursor = '';
                         node.addEventListener('transitionend', e => {
                             node.style.minWidth = '280px';
                             winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
-                            winDialog.style.transform = 
-                            winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
+                            winDialog.style.transform =
+                                winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
                             node.addEventListener('transitionend', e2 => {
                                 if (e2 === e) return;
                                 if (!gainedIDs.length) {
@@ -1042,11 +1161,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                         node.appendChild(disc.node);
                                     }
                                 }
-                            }, {once: true});
-                        }, {once: true});
-                    }, {once: true});
+                            }, { once: true });
+                        }, { once: true });
+                    }, { once: true });
                 }
-            }, 300)
+            }, 800);
         },
         generateRandomOrb(name1, name2) {
             // color
@@ -1271,7 +1390,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 internals.show();
                             });
                         });
-                    });
+                    }, { once: true });
                 })
             }
             let over = game.over;
@@ -1349,7 +1468,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
             },
             intro: `\
-是的,没错。部将。<br>
+是的,没错。部将。建议安装极略自用以获得更好的体验。<br>
 <a class="jlsgbujiang" onclick="if (_bujiang) _bujiang.show()">
 打开部将</a><br>
 `,
