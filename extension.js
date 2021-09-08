@@ -179,6 +179,21 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let desc2 = document.createElement("span"); textBox.appendChild(desc2);
                     desc2.classList.add('desctext');
                     desc2.innerHTML = str2;
+                    if (!game.getExtensionConfig('部将', 'alwaysLanes') && !lib.config.touchscreen) {
+                        // setup lanes popup
+                        let lanePopup = document.createElement('div');
+                        lanePopup.classList.add('lane-popup');
+                        let req = internals.getSkillRequirement(data[2][0]);
+                        lanePopup.appendChild(internals.panel.utils.makeColorLanes(req));
+                        if (data[3]) {
+                            let req = internals.getSkillRequirement(data[3][0]);
+                            lanePopup.appendChild(internals.panel.utils.makeColorLanes(req));
+                        }
+                        node.appendChild(lanePopup);
+                    }
+                    lib.setIntro(node, uiintro => {
+
+                    });
                     return {
                         node: node,
                         id: orbID,
@@ -426,7 +441,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let node = document.createElement('div');
                         node.classList.add('jlsgbujiang', 'suitsdisks');
                         this.name = '未命名';
-                        node.appendChild(this._nameNode);
+                        let nameMoreBox = document.createElement('div'); 
+                        nameMoreBox.classList.add('jlsgbujiang', 'name-more-box');
+                        nameMoreBox.appendChild(this._nameNode);
+                        let moreNode = document.createElement('div');
+                        moreNode.classList.add('suits-more');
+                        moreNode.addEventListener('click', e => this.suitsMore(e));
+                        nameMoreBox.appendChild(moreNode);
+                        node.appendChild(nameMoreBox);
                         node.appendChild(document.createElement('hr'));
                         let suitData = internals.data.suits[this.suitIdx];
                         internals.panel.suitDisk.build(suitData, true);
@@ -451,7 +473,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         diskContainer.appendChild(this._diskNode);
                         diskContainer.appendChild(rightButton);
                         diskContainer.appendChild(saveNode);
-                        /** TODO: actions: delete share */
                         this.update();
                         this.node = node;
                         return node;
@@ -485,6 +506,59 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         internals.save();
                         this.dirtyChanged();
                     },
+                    suitsMore(e) {
+                        let moreNode = e.currentTarget;
+                        if (e.target != moreNode) return;
+                        ui.click.touchpop();
+                        {
+                            /** dim background */
+                            if (lib.config.theme != 'simple') {
+                                ui.window.classList.add('shortcutpaused');
+                                ui.menuContainer.classList.add('forceopaque');
+                            }
+                            else {
+                                ui.window.classList.add('systempaused');
+                                ui.menuContainer.classList.add('transparent2');
+                            }
+                            if (lib.config.blur_ui) {
+                                ui.arena.classList.add('blur');
+                                ui.system.classList.add('blur');
+                                ui.menuContainer.classList.add('blur');
+                            }
+                        }
+                        let dropNode = document.createElement('div');
+                        dropNode.classList.add('menubg', 'jlsgbujiang', 'suits-more-dropdown')
+                        internals.panel.node.addEventListener('pointerup', evt => {
+                            if (!evt.path.includes(dropNode)) {
+                                evt.stopPropagation();
+                                
+                            }
+                            setTimeout(() => dropNode.delete());
+                            // if(resume) game.resume2();
+                            return false;
+                        }, {
+                            capture: true,
+                            once: true,
+                        });
+                        if (this.suitIdx != internals.data.suits.length) {
+                            let shareNode = document.createElement('div');
+                            shareNode.innerText = '详细';
+                            dropNode.appendChild(shareNode);
+                            let deleteNode = document.createElement('div');
+                            deleteNode.innerText = '删除';
+                            deleteNode.addEventListener('pointerup', e=> {
+                                internals.data.suits.splice(this.suitIdx, 1);
+                                internals.save();
+                                if (this.suitIdx >= internals.data.suits.length) {
+                                    this.suitIdx = internals.data.suits.length - 1;
+                                }
+                                this.update();
+                            });
+                            /** TODO: share */
+                            dropNode.appendChild(deleteNode);
+                            moreNode.appendChild(dropNode);
+                        }
+                    },
                     _nameNode: null,
                     get name() {
                         return this._nameNode ? this._nameNode.value : '未命名';
@@ -495,7 +569,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             this._nameNode.classList.add('suit-name');
                             this._nameNode.addEventListener('blur', e => {
                                 let value = e.target.value.trim();
-                                if (!value) return;
+                                if (!value) {
+                                    this._nameNode.value = this.__nameMem;
+                                };
                                 if (value != this.__nameMem) {
                                     this.__nameMem = value;
                                     if (this.suitIdx == internals.data.suits.length) {
@@ -509,7 +585,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                         });
                                         this.update();
                                     }
-                                    this.save();
+                                    internals.save();
                                 }
                             })
                         }
@@ -621,7 +697,23 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         node.classList.add('focused')
                     }
                 }
-            }
+            },
+            utils: {
+                /**
+                 * make a node containing styled lane numbers
+                 * @param {[number, number, number, number]} lanes 
+                 */
+                makeColorLanes(lanes) {
+                    let node = document.createElement('div');
+                    node.classList.add('jlsgbujiang', 'color-lanes');
+                    for (let n of lanes) {
+                        let cNode = document.createElement('span');
+                        cNode.innerText = n;
+                        node.appendChild(cNode);
+                    }
+                    return node;
+                },
+            },
         },
         async show() {
             console.log('bujiang show');
@@ -820,6 +912,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             return result;
         },
         // TODO: caching
+        /**
+         * get color lane requirements of skill
+         * @param {string} name 
+         * @returns {[number, number, number, number]}
+         */
         getSkillRequirement(name) {
             let temp = this.config.skillRequirement[name];
             if (temp) {
@@ -1398,6 +1495,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 over.apply(this, arguments);
                 internals.gameOver(result); // make async?
             }
+            window._bujiang = {
+                show() {
+                    internals.show();
+                }
+            }
             // debug
             window.bujiangI = internals;
             bujiangI.config.skillRequirement.then(o => { bujiangI.config.skillRequirement = o; });
@@ -1417,6 +1519,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     return lib.device ? '长按选项→拓展打开部将界面' : '双击选项→拓展打开部将界面';
                 },
                 init: true,
+            },
+            alwaysLanes: {
+                name: '色链常显',
+                intro: '珠子列表总是显示色链需求',
+                init: false,
             },
             quickSwap: {
                 name: '快捷装卸',
@@ -1469,7 +1576,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             intro: `\
 是的,没错。部将。建议安装极略自用以获得更好的体验。<br>
-<a class="jlsgbujiang" onclick="if (_bujiang) _bujiang.show()">
+<a class="jlsgbujiang" onclick="if (window._bujiang) _bujiang.show()">
 打开部将</a><br>
 `,
             author: 'xiaoas',
