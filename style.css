@@ -157,13 +157,22 @@ a.jlsgbujiang {
     font-size: calc(var(--trans) * 20px);
 }
 .orbdesc.jlsgbujiang > .lane-popup {
-    left: 100%;
-    height: calc(100% - 10px);
-    top: 5px;
-    z-index: 1;
-    background-color: rgba(255,250,245,0.7);
+    right: 42%;
+    height: calc(50% + 15px);
+    top: calc(25% - 7px);
+    z-index: 11;
+    /* background-color: #7f7f7f7f; */
     border-radius: 4px;
-    padding: 0 4px;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s;
+    opacity: 0.8;
+    pointer-events: none;
+}
+.orbdesc.jlsgbujiang > .lane-popup.removing {
+    transform: translateX(10px);
 }
 .suit-detail.jlsgbujiang {
     inset: 0 0 0 50%;
@@ -205,6 +214,7 @@ a.jlsgbujiang {
     /* width: 0; */
     margin: 0;
     opacity: 0;
+    /* pointer-events: none; */
 }
 .suit-detail.jlsgbujiang > .suitsdisks {
     grid-row: 2;
@@ -385,5 +395,32 @@ a.jlsgbujiang {
     flex: 0 0 45%;
 }
 .jlsgbujiang.color-lanes {
+    display: block;
     position: relative;
+}
+.jlsgbujiang.color-lanes > span {
+    padding: 0 0.25em;
+    border-radius: 0.25em;
+    margin: 0 0.05em;
+    box-shadow: rgb(0 0 0 / 20%) 1px -1px 2px inset, rgb(255 255 255 / 15%) -1px 1px 5px inset;
+}
+.jlsgbujiang.color-lanes > span:nth-child(1) {
+    color: #E46D79;
+    background-color: #97202C;
+    border: 1px solid #561219;
+}
+.jlsgbujiang.color-lanes > span:nth-child(2) {
+    color: #FFEA72;
+    background-color: #B39E25;
+    border: 1px solid #665A15;
+}
+.jlsgbujiang.color-lanes > span:nth-child(3) {
+    color: #69DB6C;
+    background-color: #1C8F20;
+    border: 1px solid #105212;
+}
+.jlsgbujiang.color-lanes > span:nth-child(4) {
+    color: #72A7E4;
+    background-color: #255A97;
+    border: 1px solid #153456;
 }

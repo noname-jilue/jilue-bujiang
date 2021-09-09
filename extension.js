@@ -181,18 +181,43 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     desc2.innerHTML = str2;
                     if (!game.getExtensionConfig('部将', 'alwaysLanes') && !lib.config.touchscreen) {
                         // setup lanes popup
-                        let lanePopup = document.createElement('div');
-                        lanePopup.classList.add('lane-popup');
-                        let req = internals.getSkillRequirement(data[2][0]);
-                        lanePopup.appendChild(internals.panel.utils.makeColorLanes(req));
-                        if (data[3]) {
-                            let req = internals.getSkillRequirement(data[3][0]);
+                        let lanePopup;
+                        node.addEventListener('mouseenter', e => {
+                            lanePopup = document.createElement('div');
+                            lanePopup.classList.add('jlsgbujiang', 'lane-popup', 'removing');
+                            requestAnimationFrame(() => {
+                                lanePopup.classList.remove('removing');
+                            })
+                            let req = internals.getSkillRequirement(data[2][0]);
                             lanePopup.appendChild(internals.panel.utils.makeColorLanes(req));
-                        }
-                        node.appendChild(lanePopup);
+                            if (data[3]) {
+                                let req = internals.getSkillRequirement(data[3][0]);
+                                lanePopup.appendChild(internals.panel.utils.makeColorLanes(req));
+                            }
+                            node.appendChild(lanePopup);
+                        });
+                        node.addEventListener('mouseleave', e => {
+                            lanePopup.delete(300);
+                        })
                     }
                     lib.setIntro(node, uiintro => {
-
+                        let addSkillInfo = skillName => {
+                            uiintro.add(lib.translate[skillName]);
+                            let req = internals.getSkillRequirement(skillName);
+                            uiintro.add(internals.panel.utils.makeColorLanes(req));
+                            uiintro.addText(lib.translate[skillName + '_info']);
+                            let showC = 'a'.repeat(100);
+                            for (let cName in lib.character) {
+                                if (lib.character[cName][3].includes(skillName) && cName.length < showC.length) {
+                                    showC = cName;
+                                }
+                            }
+                            if (lib.character[showC]) {
+                                uiintro.addAuto([[showC], 'character']);
+                            }
+                        };
+                        addSkillInfo(data[2][0]);
+                        if (data[3]) addSkillInfo(data[3][0]);
                     });
                     return {
                         node: node,
@@ -274,7 +299,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     return e => {
                         if (game.getExtensionConfig('部将', 'quickSwap')) { // unequip & undo 
                             let newChild = this.unequipOrb(orbID);
-                            let undoCallback = () => this.equipOrb(orbID);
+                            let undoCallback = () => this.equipOrb(orbID, true);
                             newChild.addEventListener('click', undoCallback, { once: true });
                             internals.panel.removeUndo = () => {
                                 newChild.removeEventListener('click', undoCallback);
@@ -285,7 +310,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         }
                     };
                 },
-                equipOrb(orbID) {
+                equipOrb(orbID, isUndo) {
                     if (!this.focus) return;
                     let [i, j] = this.focus;
                     console.assert(this.node.children[i * 3 + j].classList.contains('focused'));
@@ -295,6 +320,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let newChild = internals.panel._makeOrb(internals.data.orbs[orbID]);
                     this.node.children[i * 3 + j].replaceWith(newChild);
                     newChild.addEventListener('click', this._toggle(orbID));
+                    if (!isUndo && game.getExtensionConfig('部将', 'slidingEquip')) {
+                        /** FIXME */
+                    }
                     internals.panel.focus(newChild);
                     internals.panel.suitPage.suitsDisks.dirtyChanged();
                     return newChild;
@@ -353,6 +381,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             mark.src = assetURL + `/zz/type/1_${i}.png`;
                             mark.classList.add('invalid');
                         }
+                        this.colorsNode = document.createElement("div");
+                        this.colorsNode.style.cssText = 'transition: all 1s';
                         this.skill.node = document.createElement("div");
                         this.skill.node.style.cssText = 'transition: all 1s';
                         this.skill.node.classList.add('skills', 'jlsgbujiang');
@@ -361,6 +391,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.node.appendChild(document.createElement('br'));
                         this.node.append('灵力：');
                         this.node.appendChild(this.typesNode);
+                        this.node.appendChild(document.createElement('br'));
+                        this.node.append('色链：');
+                        this.node.appendChild(this.colorsNode);
                         this.node.appendChild(document.createElement('br'));
                         this.node.append('技能：'); // report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, '')
                         this.node.appendChild(this.skill.node);
@@ -385,6 +418,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             c.classList[(1 << i) & value ? 'remove' : 'add']('invalid');
                         }
                         this._types = value;
+                    },
+                    set colors(colors) {
+                        let newNode = internals.panel.utils.makeColorLanes(colors);
+                        newNode.style.display = 'inline-block';
+                        this.colorsNode.replaceWith(newNode);
+                        this.colorsNode = newNode;
                     },
                     get skills() {
                         return Object.keys(this.skill.skills);
@@ -419,6 +458,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (report.types & 1) ++newHp;
                         this.hp = newHp;
                         this.types = report.types;
+                        this.colors = report.colors;
                         this.skills = [report.skills, report.potentialSkills];
                     }
                 },
@@ -645,10 +685,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 this._loadText.style.opacity = toggle ? 1 : 0;
             },
-            equipOrb(orbID) {
+            equipOrb(orbID, isUndo) {
                 switch (this.currentPage) {
                     case 'suit':
-                        this.suitDisk.equipOrb(orbID);
+                        this.suitDisk.equipOrb(orbID, isUndo);
                         break;
                     default:
                         break;
@@ -1320,6 +1360,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             return ids;
         },
         setupData() {
+            /** TODO: repair missing skills */
             if (this.data) {
                 return;
             }
