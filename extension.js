@@ -144,7 +144,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             node.querySelector('.reddot').style.opacity = 0;
                             internals.data.newOrbs.remove(orbID);
                             internals.save();
-                        });
+                        }, { once: true });
                     }
                     let orb = internals.panel._makeOrb(data); node.appendChild(orb);
                     orb.addEventListener('click', e => {
@@ -197,28 +197,63 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             node.appendChild(lanePopup);
                         });
                         node.addEventListener('mouseleave', e => {
-                            lanePopup.delete(300);
+                            if (lanePopup) {
+                                lanePopup.delete(300);
+                            }
                         })
                     }
                     lib.setIntro(node, uiintro => {
-                        let addSkillInfo = skillName => {
-                            uiintro.add(lib.translate[skillName]);
-                            let req = internals.getSkillRequirement(skillName);
-                            uiintro.add(internals.panel.utils.makeColorLanes(req));
-                            uiintro.addText(lib.translate[skillName + '_info']);
-                            let showC = 'a'.repeat(100);
-                            for (let cName in lib.character) {
-                                if (lib.character[cName][3].includes(skillName) && cName.length < showC.length) {
-                                    showC = cName;
-                                }
-                            }
-                            if (lib.character[showC]) {
-                                uiintro.addAuto([[showC], 'character']);
-                            }
-                        };
-                        addSkillInfo(data[2][0]);
-                        if (data[3]) addSkillInfo(data[3][0]);
+                        internals.panel.utils.addSkillInfo(uiintro, data[2][0], {
+                            // num: data[2][1],
+                            characterSample: true,
+                        });
+                        if (data[3]) {
+                            internals.panel.utils.addSkillInfo(uiintro, data[3][0], {
+                                // num: data[3][1],
+                                characterSample: true,
+                            });
+                        }
                     });
+                    if (lib.config.doubleclick_intro) { // double click embed hint
+                        node.addEventListener('click', e => {
+                            if (!node._doubleClicking) {
+                                node._doubleClicking = true;
+                                setTimeout(
+                                    () => node._doubleClicking = false,
+                                    500
+                                );
+                                return;
+                            }
+                            let describe = skillName => {
+                                let hintNode = document.createElement('div');
+                                { // skill name node
+                                    let td = ui.create.div('.shadowed.reduce_radius.pointerdiv.tdnode');
+                                    td.innerText = lib.translate[skillName];
+                                    lib.setIntro(td, null, true);
+                                    td._customintro = [lib.translate[skillName], lib.translate[skillName + '_info']];
+                                    hintNode.appendChild(td);
+                                }
+                                { // skill summary
+                                    let cnt = 0;
+                                    for (let orbID in internals.data.orbs) {
+                                        let orb = internals.data.orbs[orbID];
+                                        if (orb[2][0] == skillName || orb[3] && orb[3][0] == skillName) {
+                                            ++cnt;
+                                        }
+                                    }
+                                    let des = document.createElement('div');
+                                    des.style.position = 'relative';
+                                    des.innerText = `同技能珠子共计${cnt}个`;
+                                    hintNode.appendChild(des);
+                                }
+                                internals.panel.hintPanel.add(hintNode);
+                            }
+                            describe(data[2][0]);
+                            if (data[3]) {
+                                describe(data[3][0]);
+                            }
+                        });
+                    }
                     return {
                         node: node,
                         id: orbID,
@@ -270,7 +305,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 orbNode = internals.panel._makeOrb();
                                 orbNode.addEventListener('click', this._toggle());
                             } else {
-                                orbNode = internals.panel._makeOrb(internals.data.orbs[orbID]);
+                                let orbData = internals.data.orbs[orbID];
+                                orbNode = internals.panel._makeOrb(orbData);
+                                internals.panel.utils.makeInuseOrbInfo(orbNode, orbID);
                                 if (interactive) {
                                     orbNode.addEventListener('click', this._toggle(orbID));
                                 }
@@ -314,16 +351,29 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     if (!this.focus) return;
                     let [i, j] = this.focus;
                     console.assert(this.node.children[i * 3 + j].classList.contains('focused'));
+                    if (this.orbs[i][j]) {
+                        internals.panel.orbList.removeInUse(this.orbs[i][j]);
+                    }
                     this.orbs[i][j] = orbID;
                     this.update();
                     internals.panel.orbList.addInUse(orbID);
                     let newChild = internals.panel._makeOrb(internals.data.orbs[orbID]);
+                    internals.panel.utils.makeInuseOrbInfo(newChild, orbID);
                     this.node.children[i * 3 + j].replaceWith(newChild);
                     newChild.addEventListener('click', this._toggle(orbID));
                     if (!isUndo && game.getExtensionConfig('部将', 'slidingEquip')) {
-                        /** FIXME */
+                        if (i == 2 && j == 2) {
+                            this.focus = [0, 0];
+                            internals.panel.focus(this.node.firstChild);
+                        } else {
+                            ++this.focus[1];
+                            this.focus[0] += Math.floor(this.focus[1] / 3);
+                            this.focus[1] %= 3;
+                            internals.panel.focus(newChild.nextSibling);
+                        }
+                    } else {
+                        internals.panel.focus(newChild);
                     }
-                    internals.panel.focus(newChild);
                     internals.panel.suitPage.suitsDisks.dirtyChanged();
                     return newChild;
                 },
@@ -481,7 +531,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let node = document.createElement('div');
                         node.classList.add('jlsgbujiang', 'suitsdisks');
                         this.name = '未命名';
-                        let nameMoreBox = document.createElement('div'); 
+                        let nameMoreBox = document.createElement('div');
                         nameMoreBox.classList.add('jlsgbujiang', 'name-more-box');
                         nameMoreBox.appendChild(this._nameNode);
                         let moreNode = document.createElement('div');
@@ -520,6 +570,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     update() { // call when idx changes
                         this._leftButton.disabled = this.suitIdx === 0;
                         this._rightButton.disabled = this.suitIdx === internals.data.suits.length;
+                        internals.panel.suitDisk.focus = null;
+                        internals.panel.focus();
+                        this.saveNode.style.display = 'none';
                         if (this.suitIdx == internals.data.suits.length) {
                             this.name = '点我新建套装';
                             if (this._diskNode) {
@@ -571,7 +624,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         internals.panel.node.addEventListener('pointerup', evt => {
                             if (!evt.path.includes(dropNode)) {
                                 evt.stopPropagation();
-                                
+
                             }
                             setTimeout(() => dropNode.delete());
                             // if(resume) game.resume2();
@@ -586,7 +639,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             dropNode.appendChild(shareNode);
                             let deleteNode = document.createElement('div');
                             deleteNode.innerText = '删除';
-                            deleteNode.addEventListener('pointerup', e=> {
+                            deleteNode.addEventListener('pointerup', e => {
                                 internals.data.suits.splice(this.suitIdx, 1);
                                 internals.save();
                                 if (this.suitIdx >= internals.data.suits.length) {
@@ -641,7 +694,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     left.style.cssText = "inset: 0 50% 0 0";
                     let right = document.createElement("div"); node.appendChild(right);
                     right.classList.add('jlsgbujiang', 'suit-detail');
-                    right.appendChild(document.createElement('div')); // info / filter
+                    right.appendChild(internals.panel.hintPanel.init());
+                    internals.panel.hintPanel.add(`部将0.1.0测试`);
                     right.appendChild(document.createElement('div')); // avatar
                     internals.panel.orbList.build();
                     left.appendChild(internals.panel.orbList.node);
@@ -673,6 +727,41 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.init();
                     }
                     internals.panel.node.appendChild(this.node);
+                },
+            },
+            hintPanel: {
+                node: null,
+                init() {
+                    if (this.node) return this.node;
+                    let node = document.createElement('div');
+                    this.node = node;
+                    node.classList.add('jlsgbujiang', 'hint-panel');
+                    return node;
+                },
+                add(newHint) {
+                    if (typeof newHint === 'string') {
+                        let newNode = document.createElement('div');
+                        newNode.innerText = newHint;
+                        newHint = newNode;
+                    }
+                    this.node.appendChild(newHint);
+                    Object.assign(newHint.style, {
+                        opacity: '0',
+                        transition: 'all 0.5s',
+                        backgroundColor: 'rgba(20,20,40,0.1)',
+                        borderRadius: '4px',
+                        marginBottom: '4px',
+                        padding: '2px',
+                    });
+                    requestAnimationFrame(() => {
+                        Object.assign(newHint.style, {
+                            opacity: '1',
+                        });
+                    });
+                    newHint.scrollIntoView(false);
+                },
+                clear() {
+                    this.node.innerHTML = '';
                 },
             },
             loadText(toggle) {
@@ -752,6 +841,61 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         node.appendChild(cNode);
                     }
                     return node;
+                },
+                addSkillInfo(dialog, skillName, args) {
+                    args ||= {};
+                    dialog.add(lib.translate[skillName] + (args.num ? `+${args.num}` : ''));
+                    let req = internals.getSkillRequirement(skillName);
+                    dialog.add(internals.panel.utils.makeColorLanes(req));
+                    dialog.addText(lib.translate[skillName + '_info']);
+                    if (args.characterSample) {
+                        let showC = 'a'.repeat(100);
+                        for (let cName in lib.character) {
+                            if (lib.character[cName][3].includes(skillName) && cName.length < showC.length) {
+                                showC = cName;
+                            }
+                        }
+                        if (lib.character[showC]) {
+                            dialog.add([[showC], 'character']);
+                        }
+                    }
+                },
+                makeInuseOrbInfo(orbNode, orbID) {
+                    let orbData = internals.data.orbs[orbID];
+                    let popup;
+                    orbNode.addEventListener('mouseenter', e => {
+                        popup = document.createElement('div');
+                        orbNode.appendChild(popup);
+                        popup.classList.add('jlsgbujiang', 'inuseorb-hover-popup', 'removing');
+                        requestAnimationFrame(() => {
+                            popup.classList.remove('removing');
+                        })
+                        let nameNode = document.createElement('span'); popup.appendChild(nameNode);
+                        nameNode.innerText = lib.translate[orbData[2][0]] + '+' + orbData[2][1];
+                        let req = internals.getSkillRequirement(orbData[2][0]);
+                        popup.appendChild(internals.panel.utils.makeColorLanes(req));
+                        if (orbData[3]) {
+                            let nameNode = document.createElement('span'); popup.appendChild(nameNode);
+                            nameNode.innerText = lib.translate[orbData[3][0]] + '+' + orbData[3][1];
+                            let req = internals.getSkillRequirement(orbData[3][0]);
+                            popup.appendChild(internals.panel.utils.makeColorLanes(req));
+                        }
+                    });
+                    orbNode.addEventListener('mouseleave', e => {
+                        if (popup) {
+                            popup.delete(300);
+                        }
+                    })
+                    lib.setIntro(orbNode, uiintro => {
+                        internals.panel.utils.addSkillInfo(uiintro, orbData[2][0], {
+                            num: orbData[2][1],
+                        })
+                        if (orbData[3]) {
+                            internals.panel.utils.addSkillInfo(uiintro, orbData[3][0], {
+                                num: orbData[3][1],
+                            })
+                        }
+                    });
                 },
             },
         },
