@@ -63,7 +63,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.node.remove();
                     }
                     this.descMap = {};
-                    internals.setupData();
                     let node = document.createElement("div");
                     // if(lib.config.touchscreen){
                     //     lib.setScroll(node);
@@ -501,12 +500,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         // TODO: potentialSkills
                     },
                     update(report) {
-                        let newHp = 4, newskL = report.skills.length;
-                        if (newskL > 0) --newHp;
-                        if (newskL > 2) --newHp;
-                        if (newskL > 4) --newHp;
-                        if (report.types & 1) ++newHp;
-                        this.hp = newHp;
+                        this.hp = report.hp;
                         this.types = report.types;
                         this.colors = report.colors;
                         this.skills = [report.skills, report.potentialSkills];
@@ -553,7 +547,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let saveNode = document.createElement('div'); this.saveNode = saveNode;
                         saveNode.classList.add('suit-save');
                         saveNode.innerText = '保存';
-                        saveNode.onclick = () => this.save();
+                        saveNode.onclick = () => {
+                            internals.panel.hintPanel.add('新套装重启后生效');
+                            this.save()
+                        };
                         this.dirtyChanged();
                         let diskContainer = document.createElement('div'); // bottom container
                         diskContainer.classList.add('jlsgbujiang', 'suitsdisks-inner-box');
@@ -943,13 +940,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             // show loading text
             this.panel.loadText(true);
             [this.config.skillRequirement] = await Promise.all([this.config.skillRequirement, this.Spine]);
+            localStorage.setItem('bujiangSkillRequirement', JSON.stringify(this.config.skillRequirement))
             this.panel.loadText(false);
             this.start();
             // lib.setHover(mainPanel, () => {});
             // const idb = await import('./modules/index.js');
         },
         config: {
-            skillRequirement: null,
+            skillRequirement: {},
             mixProbability: [
                 [0.88, 0.12, 0, 1, 0, 0],
                 [0.3, 0.6, 0.1, 0, 1, 0],
@@ -981,7 +979,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             this._isSaving = false;
         },
         start() {
-            this.setupData();
             if (this.data.states.needInitialGive) {
                 // await Give a random list of orbs
                 /** [
@@ -1040,6 +1037,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             let result = {
                 colors: [0, 0, 0, 0],
                 types: 0,
+                hp: 4,
                 skills: [],
             }
             let solve = orbs => {
@@ -1093,6 +1091,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
             }
             result.skills.removeArray(unfulfilledSkills);
+            if (result.skills.length > 0) --result.hp;
+            if (result.skills.length > 2) --result.hp;
+            if (result.skills.length > 4) --result.hp;
+            if (result.types & 1) ++result.hp;
             return result;
         },
         // TODO: caching
@@ -1214,7 +1216,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         },
         get bonusReady() {
             /** FIXME: move to daily bonus module as sub function */
-            this.setupData();
             if (!this.data.bonusDay) {
                 return true;
             }
@@ -1508,7 +1509,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (this.data) {
                 return;
             }
-            let data = localStorage.getItem('bujiang')
+            let data = localStorage.getItem('bujiangSkillRequirement')
+            if (data) {
+                this.config.skillRequirement = JSON.parse(data);
+            }
+            data = localStorage.getItem('bujiang')
             if (data) {
                 this.data = JSON.parse(data)
             }
@@ -1630,6 +1635,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     inte = setInterval(task, 200);
                 }
             })
+            {
+                let characters = Object.keys(lib.characterPack.jlsg_bujiang);
+                if (characters.length) {
+                    lib.config.all.characters.add('jlsg_bujiang');
+                    lib.characterReplace[characters[0]] = characters;
+                }
+            }
             // internals.PIXI = new Promise((resolve, reject) => {
             //     script2.addEventListener('load', resolve);
             //     script2.addEventListener('error', reject);
@@ -1688,12 +1700,45 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             // debug
             window.bujiangI = internals;
             bujiangI.config.skillRequirement.then(o => { bujiangI.config.skillRequirement = o; });
-            bujiangI.setupData();
         },
         precontent: function (config) {
             if (!config.enable) {
                 return;
             }
+            internals.setupData();
+            game.import('character', () => {
+                let jlsg_bujiang = {
+                    name: 'jlsg_bujiang',
+                    connect: true,
+                    character: {
+                    },
+                    translate: {
+                        jlsg_bujiang: '部将',
+                    }
+                }
+                for (let suit of internals.data.suits) {
+                    if (suit.name.startsWith('_')) continue;
+                    let report = internals.report(suit.orbs);
+                    let group = report.colors.map((x, i) => [x, i])
+                        .reduce((r, a) => (a[0] > r[0] ? a : r))[1];
+                    group = ['shu', 'qun', 'wu', 'wei'][group];
+                    if (report.types & 2) {
+                        report.skills.push('jlsg_type2');
+                    }
+                    if (report.types & 4) {
+                        report.skills.push('jlsg_type3');
+                    }
+                    jlsg_bujiang.character[suit.name + '_zuoyou'] = [
+                        'female',
+                        group,
+                        report.hp,
+                        report.skills,
+                        ['forbidai']
+                    ];
+                    jlsg_bujiang.translate[suit.name + '_zuoyou'] = suit.name;
+                }
+                return jlsg_bujiang;
+            });
             lib.init.css(assetURL, 'style');
         },
         config: {
@@ -1755,8 +1800,93 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             skill: {
                 skill: {
+                    jlsg_type2: {
+                        mod: {
+                            maxHandcard: function (player, num) {
+                                return num + 1;
+                            }
+                        },
+                    },
+                    jlsg_type3: {
+                        trigger: { global: 'gameDrawAfter', player: 'enterGame' },
+                        silent: true,
+                        content: function () {
+                            player.draw(2);
+                        }
+                    },
+                    _showBujiang: {
+                        trigger: { player: 'chooseButtonBegin' },
+                        silent: true,
+                        filter: function(event, player) {
+                            return event.parent.name == 'chooseCharacter' && event.dialog;
+                        },
+                        content: function () {
+                            // debugger;
+                            let dialog = trigger.dialog;
+                            if (dialog.bujiangInjected || !lib.characterPack.jlsg_bujiang) {
+                                event.finish();
+                                return;
+                            }
+                            dialog.bujiangInjected = true;
+                            if (!lib.characterPack.jlsg_bujiang || !Object.keys(lib.characterPack.jlsg_bujiang).length) {
+                                event.finish();
+                                return;
+                            }
+                            dialog.style.transform += 'translateX(-1em)';
+                            let node = document.createElement('div');
+                            node.classList.add('jlsgbujiang', 'dialog', 'withbg');
+                            dialog.prepend(node);
+                            Object.assign(node.style, {
+                                top: 0,
+                                left: 'calc(100% + 5px)',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                width: 'auto',
+                                height: 'auto',
+                                minHeight: '0',
+                                bottom: 'unset',
+                            });
+                            {
+                                let text = document.createElement('div'); node.appendChild(text);
+                                text.innerHTML = '部将<br>召唤';
+                                Object.assign(text.style, {
+                                    fontSize: '26px',
+                                    fontFamily: 'STXinwei, xinwei',
+                                    position: 'relative',
+                                    whiteSpace: 'nowrap',
+                                });
+                            }
+                            node.addEventListener('click', e => {
+                                // debugger;
+                                let zParent = null;
+                                if (Array.isArray(dialog.buttons) && dialog.buttons[0]) {
+                                    zParent = dialog.buttons[0].parentElement;
+                                } else {
+                                    zParent = a.querySelector('.buttons');
+                                }
+                                if (zParent.querySelector('.zuoyou')) {
+                                    return;
+                                }
+                                let zuoyouButton = ui.create.button(
+                                    Object.keys(lib.characterPack.jlsg_bujiang).randomGet(), 
+                                    'characterx',
+                                    zParent
+                                );
+                                zuoyouButton.classList.add('zuoyou');
+                                if (Array.isArray(dialog.buttons)) {
+                                    dialog.buttons.push(zuoyouButton);
+                                }
+                                game.uncheck();
+                                game.check();
+                            });
+                        },
+                    },
                 },
                 translate: {
+                    jlsg_type2: '速灵',
+                    jlsg_type2_info: '你的手牌上限+1',
+                    jlsg_type3: '技灵',
+                    jlsg_type3_info: '游戏开始时，你额外摸两张牌。',
                 },
             },
             intro: `\
