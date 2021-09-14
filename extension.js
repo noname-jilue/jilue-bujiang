@@ -58,10 +58,87 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             orbList: {
                 descMap: {}, // orbID -> {node, id, orb}
                 node: null,
-                build(config = {}) {
-                    if (this.node) {
-                        this.node.remove();
+                listNode: null,
+                controlBar: {
+                    node: null,
+                    init() {
+                        let node = document.createElement('div');
+                        this.node = node;
+                        node.classList.add('jlsgbujiang', 'orb-list-bar');
+                        let filterButton = document.createElement('div'); this.filterButton = filterButton;
+                        filterButton.classList.add('shadowed', 'reduce_radius', 'pointerdiv', 'tdnode');
+                        filterButton.innerText = '筛选';
+                        filterButton.addEventListener('click', () => this.filterOpen());
+                        node.appendChild(filterButton);
+                        return node;
+                    },
+                    filterPanel: {
+                        node: null,
+                        init() {
+                            if (this.node) return this.node;
+                            let node = document.createElement('div'); this.node = node;
+                            node.classList.add('jlsgbujiang', 'filter-panel');
+                            {
+                                let colorFilter = document.createElement('div');
+                                colorFilter.classList.add('menubg', 'color-filter');
+                                colorFilter.append('颜色：');
+                                let colorNames = ['彩', '红', '黄', '绿', '蓝'];
+                                for (let color of colorNames) {
+                                    let label = document.createElement('label');
+                                    label.classList.add('menubg');
+                                    let input = document.createElement('input');
+                                    input.type = 'checkbox';
+                                    input.checked = true;
+                                    label.append(input, color);
+                                    colorFilter.appendChild(label);
+                                }
+                                node.appendChild(colorFilter);
+                            }
+                            node.appendChild(document.createElement('br'));
+                            {
+                                let typeFilter = document.createElement('div');
+                                typeFilter.classList.add('menubg', 'type-filter');
+                                typeFilter.append('灵力：');
+                                node.appendChild(typeFilter);
+                            }
+                            return node;
+                        },
+                    },
+                    filterOpen() {
+                        // this.filterButton.classList.add('bluebg');
+                        if (!this.filterOpenPrompt && true) { // FIXME: config for update filter on close
+                            internals.panel.hintPanel.add('如果筛选时卡顿，可以在选项中关闭筛选即时更新');
+                            this.filterOpenPrompt = true;
+                        }
+                        ui.click.touchpop();
+                        const layer = ui.create.div('.popup-container');
+                        layer.addEventListener('pointerup', evt => {
+                            if (evt.path.includes(this.filterPanel.node)) {
+                                return;
+                            }
+                            if (_status.dragged) return;
+                            evt.currentTarget.delete();
+                            evt.stopPropagation();
+                            // if(resume) game.resume2();
+                            return false;
+                        });
+                        ui.window.appendChild(layer);
+                        layer.appendChild(this.filterPanel.init());
                     }
+                },
+                init(config = {}) {
+                    if (this.node) {
+                        return this.node();
+                    }
+                    this.build(config);
+                    let node = document.createElement('div'); this.node = node;
+                    node.classList.add('orb-list-wrapper', 'jlsgbujiang');
+                    this.controlBar.init();
+                    node.appendChild(this.controlBar.node);
+                    node.appendChild(this.listNode);
+                    return node;
+                },
+                build(config = {}) { // make new list (listNode)
                     this.descMap = {};
                     let node = document.createElement("div");
                     // if(lib.config.touchscreen){
@@ -70,7 +147,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     // if(lib.config.mousewheel){
                     //     node.onmousewheel=ui.click.mousewheel;
                     // }
-                    this.node = node;
+                    if (this.node && this.listNode && this.node.contains(this.listNode)) {
+                        this.listNode.replaceWith(node);
+                    }
+                    this.listNode = node;
                     node.classList.add('orblist', 'jlsgbujiang');
                     if (internals.data.newOrbs.length > 300) {
                         internals.data.newOrbs.length = 300;
@@ -80,10 +160,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let _newOrbs = new Set(internals.data.newOrbs)
                     let toRenders = Object.keys(internals.data.orbs).filter(o => !_newOrbs.has(o));
                     for (let id of internals.data.newOrbs) {
-                        if (internals.data.orbs[id]) {
-                            let disc = this._makeOrbDesc(id);
-                            node.prepend(disc.node);
-                        }
+                            let desc = this._makeOrbDesc(id);
+                            node.prepend(desc.node);
+                            this.descMap[id] = desc;
                     }
                     let options = {
                         root: node,
@@ -120,8 +199,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     if (this.node) {
                         for (let id of orbs) {
                             if (internals.data.orbs[id]) {
-                                let disc = this._makeOrbDesc(id);
-                                this.node.prepend(disc.node);
+                                let desc = this._makeOrbDesc(id);
+                                this.node.prepend(desc.node);
                             }
                         }
                     }
@@ -600,22 +679,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let moreNode = e.currentTarget;
                         if (e.target != moreNode) return;
                         ui.click.touchpop();
-                        {
-                            /** dim background */
-                            if (lib.config.theme != 'simple') {
-                                ui.window.classList.add('shortcutpaused');
-                                ui.menuContainer.classList.add('forceopaque');
-                            }
-                            else {
-                                ui.window.classList.add('systempaused');
-                                ui.menuContainer.classList.add('transparent2');
-                            }
-                            if (lib.config.blur_ui) {
-                                ui.arena.classList.add('blur');
-                                ui.system.classList.add('blur');
-                                ui.menuContainer.classList.add('blur');
-                            }
-                        }
                         let dropNode = document.createElement('div');
                         dropNode.classList.add('menubg', 'jlsgbujiang', 'suits-more-dropdown')
                         internals.panel.node.addEventListener('pointerup', evt => {
@@ -687,15 +750,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement("div"); /* node.style.cssText = "inset: 0"; */
                     node.classList.add('page-content');
                     this.node = node;
-                    let left = document.createElement("div"); node.appendChild(left);
-                    left.style.cssText = "inset: 0 50% 0 0";
+                    internals.panel.orbList.init();
+                    node.appendChild(internals.panel.orbList.node);
                     let right = document.createElement("div"); node.appendChild(right);
                     right.classList.add('jlsgbujiang', 'suit-detail');
                     right.appendChild(internals.panel.hintPanel.init());
                     internals.panel.hintPanel.add(`部将0.1.0测试`);
                     right.appendChild(document.createElement('div')); // avatar
-                    internals.panel.orbList.build();
-                    left.appendChild(internals.panel.orbList.node);
                     this.suitDesc.init();
                     let descText = this.suitDesc.node; right.appendChild(descText);
                     this.suitsDisks.init();
@@ -957,9 +1018,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 [0, 0.5, 0.5, 0, 0, 1],
             ],
             coeffMap: {
-                sp: 0.10,
-                s: 0.25,
-                ap: 0.40,
+                sp: 0.3,
+                s: 0.10,
+                ap: 0.20,
                 a: 0.55,
                 am: 0.75,
                 bp: 1.10,
@@ -1195,7 +1256,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         temp[mainID] += strength;
                     }
                     else {
-                        if (strength == 4) {
+                        if (strength >= 3) {
                             --strength; ++temp[mainID];
                         }
                         if (raN3[0] + strength >= 5) {
@@ -1454,10 +1515,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             let newOrb = [get.rand(5)]
             // type
             newOrb.push(this.utils.distributionGet([0.4, 0.2, 0.2, 0.2]));
-            let tier = this.utils.distributionGet([0.75, 0.2, 0.05]) + (newOrb[0] == 0 ? 3 : 0);
+            let tier = this.utils.distributionGet([0.6, 0.3, 0.1]) + (newOrb[0] == 0 ? 3 : 0);
             newOrb.push([name1, this._resolveTier(tier)]);
             if (name2 && name2 != name1) {
-                let tier = this.utils.distributionGet([0.75, 0.2, 0.05]) + (newOrb[0] == 0 ? 3 : 0);
+                let tier = this.utils.distributionGet([0.6, 0.3, 0.1]) + (newOrb[0] == 0 ? 3 : 0);
                 newOrb.push([name2, this._resolveTier(tier)]);
             }
             return newOrb;
@@ -1639,7 +1700,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 let characters = Object.keys(lib.characterPack.jlsg_bujiang);
                 if (characters.length) {
                     lib.config.all.characters.add('jlsg_bujiang');
-                    lib.characterReplace[characters[0]] = characters;
+                    // Object.defineProperty(lib.characterReplace, characters[0], {
+                    //     get() { return characters.slice(); } 
+                    // });
                 }
             }
             // internals.PIXI = new Promise((resolve, reject) => {
@@ -1867,8 +1930,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 if (zParent.querySelector('.zuoyou')) {
                                     return;
                                 }
+                                let candidates = Object.keys(lib.characterPack.jlsg_bujiang);
+                                let zyName = candidates.randomGet();
+                                lib.characterReplace[zyName] = [zyName, ...candidates.filter(c => c != zyName)];
                                 let zuoyouButton = ui.create.button(
-                                    Object.keys(lib.characterPack.jlsg_bujiang).randomGet(), 
+                                    zyName, 
                                     'characterx',
                                     zParent
                                 );

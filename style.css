@@ -39,6 +39,11 @@ a.jlsgbujiang {
 .menubg.jlsgbujiang.main > .page-content {
     flex: 1;
     position: relative;
+    display: flex;
+}
+.menubg.jlsgbujiang.main > .page-content > * {
+    flex: 1 0;
+    position: relative;
 }
 .loadtext.jlsgbujiang {
     font-family: 'huangcao','xinwei';
@@ -53,14 +58,88 @@ a.jlsgbujiang {
     height: 100%;
     width: 100%;
 }
+.jlsgbujiang.orb-list-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+.jlsgbujiang.orb-list-wrapper > * {
+    position: relative;
+}
+.jlsgbujiang.orb-list-bar {
+    display: flex;
+    flex-direction: row-reverse;
+    /* height: 32px; */
+
+}
+.jlsgbujiang.orb-list-bar > .tdnode:hover::after {
+    /* background-color: rgba(0,0,0,.4); */
+    box-shadow: rgb(0 0 0 / 15%) 0 0 0 2px;
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.jlsgbujiang.filter-panel {
+    inset: 6%;
+    padding: 10px;
+    background: rgba(0,0,0,0.5);
+    box-shadow: 0 0px 2px 1px rgb(30 32 34 / 30%), 0 0px 6px 2px rgb(30 32 34 / 15%);
+    border-radius: 8px;
+    z-index: 4;
+    animation: dialog_start2 0.3s;
+    height: unset;
+    width: unset;
+    /* display: flex; */
+}
+.jlsgbujiang.filter-panel > * {
+    position: relative;
+    padding: 6px;
+    margin: 6px;
+    font-size: 26px;
+    font-family: 'STXinwei','xinwei';
+}
+.jlsgbujiang.filter-panel > .color-filter > * {
+    position: relative;
+    padding: 2px;
+    margin: 0 4px;
+    border-radius: 4px;
+    display: inline-block;  
+}
+.jlsgbujiang.filter-panel > .color-filter > :hover::after {
+    content: '';
+    position: absolute;
+    width: 100%; 
+    height:100%;
+    top:0; 
+    left:0;
+    background:rgba(30,32,34,0.04);
+}
+.jlsgbujiang.filter-panel > .color-filter > :nth-child(1) {
+    color: #9e25b3;
+}
+.jlsgbujiang.filter-panel > .color-filter > :nth-child(2) {
+    color: #97202C;
+}
+.jlsgbujiang.filter-panel > .color-filter > :nth-child(3) {
+    color: #B39E25;
+}
+.jlsgbujiang.filter-panel > .color-filter > :nth-child(4) {
+    color: #1C8F20;
+}
+.jlsgbujiang.filter-panel > .color-filter > :nth-child(5) {
+    color: #255A97;
+}
 .orblist.jlsgbujiang {
     /* line-height: 0; */
+    backface-visibility: hidden;
+    transform: translateZ(0);
     display: flex;
     align-items: flex-start;
     align-content: start;
     flex-wrap: wrap;
-    padding: 0 3px;
-    inset: 0;
+    padding: 3px;
     overflow: scroll;
     mask-image: linear-gradient(rgba(0,0,0,1) 95%, rgba(0,0,0,0));
     -webkit-mask-image: linear-gradient(rgba(0,0,0,1) 95%, rgba(0,0,0,0));
@@ -119,6 +198,7 @@ a.jlsgbujiang {
     margin: 2% 1.5% 1.5% 2%;
     flex: 1;
     position: relative;
+    cursor: pointer;
 }
 .orbdesc.jlsgbujiang.inuse > .orb {
     opacity: 0.3;
@@ -126,11 +206,13 @@ a.jlsgbujiang {
 }
 .orb.jlsgbujiang > * {
     position: absolute;
+    backface-visibility: hidden;
+    transform: translateZ(0);
     /* inset: calc(var(--trans) * 3px); */
     /* height: calc(var(--trans) * 68px); */
     height: 100%;
 }
-.orb.jlsgbujiang.focused {
+.orb.jlsgbujiang.focused > :first-child {
     filter: drop-shadow(2px 4px 6px red);
 }
 .desctextbox.jlsgbujiang {
@@ -175,7 +257,6 @@ a.jlsgbujiang {
     transform: translateX(10px);
 }
 .suit-detail.jlsgbujiang {
-    inset: 0 0 0 50%;
     display: grid;
     /* align-items: center; */
     grid-template-columns: 30% auto 45%;
@@ -274,6 +355,7 @@ a.jlsgbujiang {
     background-color: rgba(20,20,40,0.1);
 }
 .jlsgbujiang.suits-more-dropdown {
+    animation: dialog_start2 0.3s;
     width: 64px;
     display: flex;
     flex-direction: column;
@@ -334,6 +416,7 @@ a.jlsgbujiang {
     width: calc(var(--trans) * 385px);
     background-image: url('./bujiang/img_di_zhupan.png');
     background-size: cover;
+    cursor: pointer;
     --dx: 116px;
     --dy: 116px;
     --x0: 43px;
@@ -449,7 +532,6 @@ a.jlsgbujiang {
     transition: all 0.3s;
     opacity: 0.8;
     pointer-events: none;
-    filter: none;
 }
 .jlsgbujiang.orb .inuseorb-hover-popup.removing {
     transform: scale(0.5);
