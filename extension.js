@@ -61,6 +61,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 listNode: null,
                 controlBar: {
                     node: null,
+                    filterButton: null,
                     init() {
                         let node = document.createElement('div');
                         this.node = node;
@@ -74,8 +75,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     },
                     filterPanel: {
                         node: null,
+                        value: {
+                            colors: [true, true, true, true, true],
+                            types: [true, true, true, true],
+                        },
                         init() {
                             if (this.node) return this.node;
+                            this._initValueBackup = JSON.stringify(this.value);
                             let node = document.createElement('div'); this.node = node;
                             node.classList.add('jlsgbujiang', 'filter-panel');
                             {
@@ -83,12 +89,17 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 colorFilter.classList.add('menubg', 'color-filter');
                                 colorFilter.append('颜色：');
                                 let colorNames = ['彩', '红', '黄', '绿', '蓝'];
-                                for (let color of colorNames) {
+                                for (let [i, color] of colorNames.entries()) {
                                     let label = document.createElement('label');
                                     label.classList.add('menubg');
                                     let input = document.createElement('input');
                                     input.type = 'checkbox';
                                     input.checked = true;
+                                    input.addEventListener('change', e => {
+                                        this.value.colors[i] = input.checked;
+                                        this.update();
+
+                                    })
                                     label.append(input, color);
                                     colorFilter.appendChild(label);
                                 }
@@ -99,9 +110,38 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 let typeFilter = document.createElement('div');
                                 typeFilter.classList.add('menubg', 'type-filter');
                                 typeFilter.append('灵力：');
+                                let colorNames = [
+                                    '<span>无</span>',
+                                    `<img src= "${assetURL}/zz/type/1_1.png"></img>`,
+                                    `<img src= "${assetURL}/zz/type/1_2.png"></img>`,
+                                    `<img src= "${assetURL}/zz/type/1_3.png"></img>`,
+                                ];
+                                for (let [i, type] of colorNames.entries()) {
+                                    let label = document.createElement('label');
+                                    label.classList.add('menubg');
+                                    let input = document.createElement('input');
+                                    input.type = 'checkbox';
+                                    input.checked = true;
+                                    input.addEventListener('change', e => {
+                                        this.value.types[i] = input.checked;
+                                        this.update();
+                                    })
+                                    label.append(input);
+                                    label.insertAdjacentHTML('beforeend', type);
+                                    typeFilter.appendChild(label);
+                                }
                                 node.appendChild(typeFilter);
                             }
                             return node;
+                        },
+                        update() {
+                            if (this._initValueBackup == JSON.stringify(this.value)) {
+                                internals.panel.orbList.controlBar.filterButton.classList.remove('bluebg');
+                            } else {
+                                internals.panel.orbList.controlBar.filterButton.classList.add('bluebg');
+                            }
+                            // FIXME: config for update filter on close
+                            internals.panel.orbList.build();
                         },
                     },
                     filterOpen() {
@@ -156,14 +196,20 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         internals.data.newOrbs.length = 300;
                         internals.save();
                     }
-                    // TODO: apply custom sort & filter
-                    let _newOrbs = new Set(internals.data.newOrbs)
-                    let toRenders = Object.keys(internals.data.orbs).filter(o => !_newOrbs.has(o));
+                    // TODO: apply custom sort
+                    let filterConfig = config.filterConfig || this.controlBar.filterPanel.value;
+                    let filter = id => {
+                        let orb = internals.data.orbs[id];
+                        return filterConfig.colors[orb[0]] && filterConfig.types[orb[1]];
+                    };
+                    let _newOrbs = new Set(internals.data.newOrbs);
                     for (let id of internals.data.newOrbs) {
-                            let desc = this._makeOrbDesc(id);
-                            node.prepend(desc.node);
-                            this.descMap[id] = desc;
+                        if (!filter(id)) continue;
+                        let desc = this._makeOrbDesc(id);
+                        node.prepend(desc.node);
+                        this.descMap[id] = desc;
                     }
+                    let toRenders = Object.keys(internals.data.orbs).filter(o => !_newOrbs.has(o));
                     let options = {
                         root: node,
                         rootMargin: '100%',
@@ -173,6 +219,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             observer.disconnect();
                             let desc, orbs = toRenders.splice(0, 100);
                             for (let id of orbs) {
+                                if (!filter(id)) continue;
                                 desc = this._makeOrbDesc(id);
                                 node.appendChild(desc.node);
                                 this.descMap[id] = desc;

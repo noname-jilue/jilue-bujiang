@@ -100,14 +100,16 @@ a.jlsgbujiang {
     font-size: 26px;
     font-family: 'STXinwei','xinwei';
 }
-.jlsgbujiang.filter-panel > .color-filter > * {
+.jlsgbujiang.filter-panel > .color-filter > *,
+.jlsgbujiang.filter-panel > .type-filter > * {
     position: relative;
     padding: 2px;
     margin: 0 4px;
     border-radius: 4px;
     display: inline-block;  
 }
-.jlsgbujiang.filter-panel > .color-filter > :hover::after {
+.jlsgbujiang.filter-panel > .color-filter > :hover::after,
+.jlsgbujiang.filter-panel > .type-filter > :hover::after {
     content: '';
     position: absolute;
     width: 100%; 
@@ -130,6 +132,12 @@ a.jlsgbujiang {
 }
 .jlsgbujiang.filter-panel > .color-filter > :nth-child(5) {
     color: #255A97;
+}
+.jlsgbujiang.filter-panel > .type-filter img {
+    height: 1.1em;
+    filter: brightness(1.5) grayscale(1);
+    position: relative;
+    float: right;
 }
 .orblist.jlsgbujiang {
     /* line-height: 0; */
