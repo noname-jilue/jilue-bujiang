@@ -1,3 +1,22 @@
+if (!Array.prototype.flat) {
+	Object.defineProperty(Array.prototype, 'flat', {
+		configurable: true,
+		value: function flat () {
+			var depth = isNaN(arguments[0]) ? 1 : Number(arguments[0]);
+
+			return depth ? Array.prototype.reduce.call(this, function (acc, cur) {
+				if (Array.isArray(cur)) {
+					acc.push.apply(acc, flat.call(cur, depth - 1));
+				} else {
+					acc.push(cur);
+				}
+
+				return acc;
+			}, []) : Array.prototype.slice.call(this);
+		},
+		writable: true
+	});
+}
 game.import('extension', function (lib, game, ui, get, ai, _status) {
     /** without ending slash! */
     const assetURL = lib.assetURL + 'extension/部将';
@@ -76,6 +95,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     filterPanel: {
                         node: null,
                         value: {
+                            skillName: '',
                             colors: [true, true, true, true, true],
                             types: [true, true, true, true],
                         },
@@ -84,6 +104,34 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             this._initValueBackup = JSON.stringify(this.value);
                             let node = document.createElement('div'); this.node = node;
                             node.classList.add('jlsgbujiang', 'filter-panel');
+                            {
+                                let skillNameFilter = document.createElement('div');
+                                skillNameFilter.classList.add('menubg', 'skill-name-filter');
+                                let input = document.createElement('input');
+                                input.id = 'skill-name-filter-0';
+                                input.placeholder = ' ';
+                                let label = document.createElement('label');
+                                label.htmlFor = input.id;
+                                label.innerText = '技能名…';
+                                let clear = document.createElement('button');
+                                skillNameFilter.append(input, label, clear);
+                                input.addEventListener('blur', e => {
+                                    if (e.relatedTarget === clear) return;
+                                    if (this.value.skillName != input.value) {
+                                        this.value.skillName = input.value;
+                                        this.update();
+                                    }
+                                })
+                                clear.addEventListener('click', e => {
+                                    this.value.skillName = input.value = '';
+                                    this.update();
+                                });
+                                skillNameFilter.addEventListener('click', e => {
+                                    input.focus();
+                                });
+                                node.appendChild(skillNameFilter);
+                            }
+                            node.appendChild(document.createElement('br'));
                             {
                                 let colorFilter = document.createElement('div');
                                 colorFilter.classList.add('menubg', 'color-filter');
@@ -132,6 +180,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 }
                                 node.appendChild(typeFilter);
                             }
+                            // TODO: filter by skill num
                             return node;
                         },
                         update() {
@@ -168,7 +217,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
                 init(config = {}) {
                     if (this.node) {
-                        return this.node();
+                        return this.node;
                     }
                     this.build(config);
                     let node = document.createElement('div'); this.node = node;
@@ -192,19 +241,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                     this.listNode = node;
                     node.classList.add('orblist', 'jlsgbujiang');
+                    internals.data.newOrbs = internals.data.newOrbs.filter(o => o in internals.data.orbs);
                     if (internals.data.newOrbs.length > 300) {
                         internals.data.newOrbs.length = 300;
                         internals.save();
                     }
                     // TODO: apply custom sort
-                    let filterConfig = config.filterConfig || this.controlBar.filterPanel.value;
-                    let filter = id => {
-                        let orb = internals.data.orbs[id];
-                        return filterConfig.colors[orb[0]] && filterConfig.types[orb[1]];
-                    };
                     let _newOrbs = new Set(internals.data.newOrbs);
                     for (let id of internals.data.newOrbs) {
-                        if (!filter(id)) continue;
+                        if (!this.filterOrb(id)) continue;
                         let desc = this._makeOrbDesc(id);
                         node.prepend(desc.node);
                         this.descMap[id] = desc;
@@ -219,7 +264,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             observer.disconnect();
                             let desc, orbs = toRenders.splice(0, 100);
                             for (let id of orbs) {
-                                if (!filter(id)) continue;
+                                if (!this.filterOrb(id)) continue;
                                 desc = this._makeOrbDesc(id);
                                 node.appendChild(desc.node);
                                 this.descMap[id] = desc;
@@ -241,13 +286,33 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     observer.observe(tempC);
                     return node;
                 },
+                filterOrb(orbID) {
+                    let filterConfig = this.controlBar.filterPanel.value;
+                    let orb = internals.data.orbs[orbID];
+                    if (filterConfig.skillName) {
+                        let names = filterConfig.skillName.split(' ').filter(s => s);
+                        for (let name of names) {
+                            if (orb[3]) {
+                                if (orb[3][0].includes(name) || 
+                                lib.translate[orb[3][0]] && lib.translate[orb[3][0]].includes(name)) {
+                                    continue;
+                                }
+                            }
+                            if (!orb[2][0].includes(name) && !(lib.translate[orb[2][0]] && lib.translate[orb[2][0]].includes(name))) {
+                                return false;
+                            } 
+                        }
+                    }
+                    return filterConfig.colors[orb[0]] && filterConfig.types[orb[1]];
+                },
                 gainOrbs(orbs) {
                     internals.data.newOrbs.push(...orbs);
                     if (this.node) {
                         for (let id of orbs) {
                             if (internals.data.orbs[id]) {
+                                if (!this.filterOrb(id)) continue;
                                 let desc = this._makeOrbDesc(id);
-                                this.node.prepend(desc.node);
+                                this.listNode.prepend(desc.node);
                             }
                         }
                     }
@@ -428,13 +493,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             let orbID = data.orbs[i][j], orbNode;
                             if (!orbID || !internals.data.orbs[orbID]) {
                                 orbNode = internals.panel._makeOrb();
-                                orbNode.addEventListener('click', this._toggle());
+                                orbNode.addEventListener('click', this._toggler());
                             } else {
                                 let orbData = internals.data.orbs[orbID];
                                 orbNode = internals.panel._makeOrb(orbData);
                                 internals.panel.utils.makeInuseOrbInfo(orbNode, orbID);
                                 if (interactive) {
-                                    orbNode.addEventListener('click', this._toggle(orbID));
+                                    orbNode.addEventListener('click', this._toggler(orbID));
                                 }
                             }
                             children[i].push(orbNode);
@@ -447,7 +512,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         orbs: children,
                     }
                 },
-                _toggle(orbID) {
+                _toggler(orbID) {
                     if (!orbID) { // focus
                         return e => {
                             if (e.currentTarget.classList.contains('focused')) {
@@ -485,7 +550,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let newChild = internals.panel._makeOrb(internals.data.orbs[orbID]);
                     internals.panel.utils.makeInuseOrbInfo(newChild, orbID);
                     this.node.children[i * 3 + j].replaceWith(newChild);
-                    newChild.addEventListener('click', this._toggle(orbID));
+                    newChild.addEventListener('click', this._toggler(orbID));
                     if (!isUndo && game.getExtensionConfig('部将', 'slidingEquip')) {
                         if (i == 2 && j == 2) {
                             this.focus = [0, 0];
@@ -504,7 +569,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
                 unequipOrb(orbID) {
                     let newChild = internals.panel._makeOrb(); // generate place holder
-                    newChild.addEventListener('click', this._toggle());
+                    newChild.addEventListener('click', this._toggler());
                     for (let i of Array(3).keys()) {
                         for (let j of Array(3).keys()) {
                             if (this.orbs[i][j] == orbID) {
@@ -642,7 +707,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     },
                     dirtyChanged() {
                         if (this.dirty) {
-                            this.saveNode.style.display = 'unset';
+                            this.saveNode.style.display = '';
                         } else {
                             this.saveNode.style.display = 'none';
                         }
@@ -722,7 +787,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         internals.save();
                         this.dirtyChanged();
                     },
-                    suitsMore(e) {
+                    suitsMore(e) { // show more dropdown
                         let moreNode = e.currentTarget;
                         if (e.target != moreNode) return;
                         ui.click.touchpop();
@@ -744,18 +809,20 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             let shareNode = document.createElement('div');
                             shareNode.innerText = '详细';
                             dropNode.appendChild(shareNode);
-                            let deleteNode = document.createElement('div');
-                            deleteNode.innerText = '删除';
-                            deleteNode.addEventListener('pointerup', e => {
-                                internals.data.suits.splice(this.suitIdx, 1);
-                                internals.save();
-                                if (this.suitIdx >= internals.data.suits.length) {
-                                    this.suitIdx = internals.data.suits.length - 1;
-                                }
-                                this.update();
-                            });
+                            if (internals.data.suits.length > 1) {
+                                let deleteNode = document.createElement('div');
+                                deleteNode.innerText = '删除';
+                                deleteNode.addEventListener('pointerup', e => {
+                                    internals.data.suits.splice(this.suitIdx, 1);
+                                    internals.save();
+                                    if (this.suitIdx >= internals.data.suits.length) {
+                                        this.suitIdx = internals.data.suits.length - 1;
+                                    }
+                                    this.update();
+                                });
+                                dropNode.appendChild(deleteNode);
+                            }
                             /** TODO: share */
-                            dropNode.appendChild(deleteNode);
                             moreNode.appendChild(dropNode);
                         }
                     },
@@ -802,10 +869,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let right = document.createElement("div"); node.appendChild(right);
                     right.classList.add('jlsgbujiang', 'suit-detail');
                     right.appendChild(internals.panel.hintPanel.init());
-                    internals.panel.hintPanel.add(`部将0.1.0测试`);
                     right.appendChild(document.createElement('div')); // avatar
                     this.suitDesc.init();
-                    let descText = this.suitDesc.node; right.appendChild(descText);
+                    right.appendChild(this.suitDesc.node);
                     this.suitsDisks.init();
                     right.appendChild(this.suitsDisks.node);
                 },
@@ -813,26 +879,166 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     if (internals.panel.currentPage == 'suit') {
                         return;
                     }
-                    if (!this.node) {
-                        this.init();
+                    this.init();
+                    let currentPageNode = internals.panel.node.querySelector('.page-content');
+                    if (currentPageNode) {
+                        currentPageNode.replaceWith(this.node);
+                    } else {
+                        internals.panel.node.appendChild(this.node);
                     }
-                    internals.panel.node.appendChild(this.node);
                 }
             },
             mixPage: {
                 node: null,
                 init() {
-
+                    let node = document.createElement("div");
+                    node.classList.add('page-content');
+                    this.node = node;
+                    internals.panel.orbList.init();
+                    node.appendChild(internals.panel.orbList.node);
+                    let right = document.createElement("div"); node.appendChild(right);
+                    right.classList.add('jlsgbujiang', 'mix-detail');
+                    right.appendChild(internals.panel.hintPanel.init());
+                    right.appendChild(this.mixDisk.init());
+                    return node;
                 },
                 show() {
                     if (internals.panel.currentPage == 'mix') {
                         return;
                     }
-                    if (!this.node) {
-                        this.init();
+                    this.init();
+                    let currentPageNode = internals.panel.node.querySelector('.page-content');
+                    if (currentPageNode) {
+                        currentPageNode.replaceWith(this.node);
+                    } else {
+                        internals.panel.node.appendChild(this.node);
                     }
-                    internals.panel.node.appendChild(this.node);
+                    internals.panel.orbList.updateInUse(this.mixDisk.orbs.map(o => o.id));
                 },
+                mixDisk: {
+                    node: null,
+                    orbs: null,
+                    init() {
+                        // if (this.node) return this.node;
+                        let node = document.createElement("div");
+                        this.node = node;
+                        node.classList.add('jlsgbujiang', 'mix-disk');
+                        this.orbs = [];
+                        let description = [
+                            '技能珠',
+                            '技能珠',
+                            '外观珠'
+                        ];
+                        for (let i of Array(3).keys()) {
+                            let orbWrapper = document.createElement('div');
+                            orbWrapper.classList.add('mix-orb-entry');
+                            let orbNode = internals.panel._makeOrb();
+                            orbNode.addEventListener('click', this._toggler());
+                            let desc = document.createElement('span');
+                            desc.innerHTML = description[i];
+                            orbWrapper.append(orbNode, desc);
+                            this.orbs.push({
+                                id: null,
+                                node: orbNode,
+                            })
+                            node.appendChild(orbWrapper);
+                        }
+                        let mixButton = document.createElement('div'); this.mixButton = mixButton;
+                        mixButton.classList.add('mix-button');
+                        mixButton.innerText = '合成';
+                        node.appendChild(mixButton);
+                        mixButton.onclick = () => {
+                            let cnt = this.orbs.filter(o => o.id).length;
+                            let suffice = internals.data.cash >= (3 - cnt) * 10;
+                            if (cnt && suffice) {
+                                // TODO: enable imcomplete mix at the cost of cash
+                                let oldOrbs = this.orbs.map(o => o.id);
+                                oldOrbs.forEach(o => this.unequipOrb(o));
+                                let orbID = internals.mixOrb(oldOrbs);
+                                this.focus = 0;
+                                internals.panel.focus(this.node.querySelector('.orb'));
+                            } else {
+                                internals.panel.hintPanel.add('没有足够的珠砂');
+                            }
+                        }
+                        this.focus = null;
+                        // this.update();
+                        return node;
+                    },
+                    _toggler(orbID) {
+                        if (!orbID) { // focus
+                            return e => {
+                                if (e.currentTarget.classList.contains('focused')) {
+                                    return;
+                                }
+                                let idx = Array.from(this.node.children).indexOf(e.currentTarget.parentNode);
+                                this.focus = idx;
+                                internals.panel.focus(e.currentTarget);
+                            }
+                        };
+                        return e => {
+                            if (game.getExtensionConfig('部将', 'quickSwap')) { // unequip & undo 
+                                let newChild = this.unequipOrb(orbID);
+                                let undoCallback = () => this.equipOrb(orbID, true);
+                                newChild.addEventListener('click', undoCallback, { once: true });
+                                internals.panel.removeUndo = () => {
+                                    newChild.removeEventListener('click', undoCallback);
+                                }
+                            } else {
+                                // TODO: create action list tip
+                                throw 'not implemented';
+                            }
+                        };
+                    },
+                    equipOrb(orbID, isUndo) {
+                        if (![0, 1, 2].includes(this.focus)) {
+                            return;
+                        }
+                        console.assert(this.node.children[this.focus].querySelector('.orb').classList.contains('focused'));
+                        let {id, node} = this.orbs[this.focus];
+                        if (id) {
+                            internals.panel.orbList.removeInUse(id);
+                        }
+                        internals.panel.orbList.addInUse(orbID);
+                        let newChild = internals.panel._makeOrb(internals.data.orbs[orbID]);
+                        internals.panel.utils.makeInuseOrbInfo(newChild, orbID);
+                        newChild.addEventListener('click', this._toggler(orbID));
+                        node.replaceWith(newChild);
+                        this.orbs[this.focus] = {
+                            id: orbID,
+                            node: newChild,
+                        }
+                        // this.update();
+                        if (!isUndo && game.getExtensionConfig('部将', 'slidingEquip')) {
+                            this.focus = (this.focus + 1) % 3;
+                        }
+                        internals.panel.focus(this.orbs[this.focus].node);
+                    },
+                    unequipOrb(orbID) {
+                        let newChild = internals.panel._makeOrb();
+                        newChild.addEventListener('click', this._toggler());
+                        for (let i of Array(3).keys()) {
+                            let {id, node} = this.orbs[i];
+                            if (id != orbID) continue;
+                            this.orbs[i] = {
+                                id: null,
+                                node: newChild,
+                            }; // remove orb in data
+                            this.update();
+                            internals.panel.orbList.removeInUse(orbID);
+                            node.replaceWith(newChild);
+                            this.focus = i;
+                            internals.panel.focus(newChild);
+                            return newChild;
+                        }
+                        console.warn(orbID, 'not found in use');
+                    },
+                    update() {
+                        let cnt = this.orbs.filter(o => o.id).length;
+                        let suffice = (3 - cnt) * 10 >= internals.data.cash;
+                    },
+                    
+                }
             },
             hintPanel: {
                 node: null,
@@ -841,6 +1047,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
+                    this.add(`部将0.2.0测试`);
+                    this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
                     return node;
                 },
                 add(newHint) {
@@ -884,6 +1092,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     case 'suit':
                         this.suitDisk.equipOrb(orbID, isUndo);
                         break;
+                    case 'mix':
+                        this.mixPage.mixDisk.equipOrb(orbID, isUndo);
+                        break;
                     default:
                         break;
                 }
@@ -893,11 +1104,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     case 'suit':
                         this.suitDisk.unequipOrb(orbID);
                         break;
+                    case 'mix':
+                        this.mixPage.mixDisk.unequipOrb(orbID);
+                        break;
                     default:
                         break;
                 }
             },
             get currentPage() {
+                if (!this.node) return null;
                 if (this.node.contains(this.suitPage.node)) {
                     return 'suit';
                 }
@@ -947,8 +1162,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                     return node;
                 },
-                addSkillInfo(dialog, skillName, args) {
-                    args ||= {};
+                addSkillInfo(dialog, skillName, args = {}) {
                     dialog.add(lib.translate[skillName] + (args.num ? `+${args.num}` : ''));
                     let req = internals.getSkillRequirement(skillName);
                     dialog.add(internals.panel.utils.makeColorLanes(req));
@@ -966,6 +1180,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                 },
                 makeInuseOrbInfo(orbNode, orbID) {
+                    // build hovering info & intro for in-use orbs
                     let orbData = internals.data.orbs[orbID];
                     let popup;
                     orbNode.addEventListener('mouseenter', e => {
@@ -1064,18 +1279,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 [0.5, 0.5, 0, 0, 0.9, 0.1],
                 [0, 0.5, 0.5, 0, 0, 1],
             ],
-            coeffMap: {
-                sp: 0.3,
-                s: 0.10,
-                ap: 0.20,
-                a: 0.55,
-                am: 0.75,
-                bp: 1.10,
-                b: 1.40,
-                bm: 1.80,
-                c: 2.10,
-                d: 2.40,
-                x: 0.50,
+            coeffMap: { 
+                sp: 0.03,
+                s: 0.08,
+                ap: 0.15,
+                a: 0.45,
+                am: 0.6,
+                bp: 0.9,
+                b: 1.1,
+                bm: 1.3,
+                c: 1.6,
+                d: 1.9,
+                x: 0.40,
             },
         },
         async save() {
@@ -1372,6 +1587,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
          * @param {[String, String, String]} orbs 
          */
         mixOrb(orbs) {
+            // TODO: enable imcomplete mix at the cost of cash
             let orbData = orbs.map(o => this.data.orbs[o]);
             if (orbData.some(o => !o)) {
                 throw 'orb not found while mixing';
@@ -1451,25 +1667,34 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                 }
                 if (!this._allSkills) {
+                    this._rankSkills = {};
+                    for (let key of Array(10).keys()) this._rankSkills[key + 1] = [];
                     let skills = [];
                     for (let c in lib.character) {
                         if (lib.filter.characterDisabled(c)) continue;
+                        let rank = get.rank(c, true);
                         for (let sk of lib.character[c][3]) {
-                            if (lib.skill[sk] && !lib.skill[sk].zhuSkill && !lib.skill[sk].juexingji && !lib.skill[sk].unique &&
-                                lib.translate[sk] && lib.translate[sk + '_info'])
+                            if (lib.skill[sk] && !lib.skill[sk].zhuSkill && !lib.skill[sk].juexingji && // !lib.skill[sk].unique &&
+                                lib.translate[sk] && lib.translate[sk + '_info']) {
                                 skills.push(sk);
+                                this._rankSkills[rank].push(sk);
+                            }
                         }
                     }
                     this._allSkills = skills;
                 }
                 let skills = lib.character[me.name1][3].filter(s => this._allSkills.includes(s));
                 let addOrb = (cnt, skills) => {
+                    if (!skills.length) return;
                     while (cnt) {
                         --cnt;
                         // only skill, skill at 1, skill at 2
                         let skillType = this.utils.distributionGet([0.5, 0.2, 0.3]);
                         let names = [skills.randomGet() || this._allSkills.randomGet()];
-                        let name2 = this._allSkills.randomGet();
+                        let name2 = names[0];
+                        while (name2 === names[0]) {
+                            name2 = this._allSkills.randomGet();
+                        }
                         if (skillType == 2) {
                             names.unshift(name2);
                         } else if (skillType == 1) {
@@ -1482,6 +1707,27 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (me.name2) {
                     skills = lib.character[me.name2][3].filter(s => this._allSkills.includes(s));
                     addOrb(cnt2, skills);
+                }
+                { // extra full-random orb
+                    let cnt = this.utils.distributionGet([0.2, 0.5, 0.2, 0.1]);
+                    ++cnt;
+                    let coeff = get.rank(me.name1, true); // 1=d, 10=sp
+                    if (me.name2) {
+                        coeff = (coeff + get.rank(me.name2, true)) / 2;
+                    }
+                    coeff = -2/3 * coeff + 23/3; // map d ~ sp to a ~ d
+                    let ranks = [];
+                    while (ranks.length < cnt) {
+                        let rank = Math.round(this.utils.randn_bm() + coeff);
+                        if (rank < 1) rank = 1;
+                        if (rank > 9) rank = 9;
+                        if (this._rankSkills[rank] && this._rankSkills[rank].length) {
+                            ranks.push(rank);
+                        }
+                    }
+                    for (let rank of ranks) {
+                        addOrb(1, this._rankSkills[rank]);
+                    }
                 }
                 return result;
             };
@@ -1570,11 +1816,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             return newOrb;
         },
-        removeOrbs(orbs, args) {
-            // update suits
+        removeOrbs(orbs, args = {}) {
             for (let id of orbs) {
                 delete this.data.orbs[id];
             }
+            // update suits
             args.newID = args.newID || null;
             for (let suit of this.data.suits) {
                 let used = false;
@@ -1627,6 +1873,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             if (!this.data || this.data.cheater) {
                 this.data = {
+                    cash: 0,
                     suits: [
                         {
                             name: '默认',
@@ -1638,12 +1885,41 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         }
                     ],
                     orbs: {},
+                    brokenOrbs: {},
                     newOrbs: [],
                     states: {
                         needInitialGive: true,
                     }
                 }
                 this.save();
+            } else { // solve issues in data
+                lib.arenaReady.push(() => {
+                    if (!this.data.suits.length) {
+                        this.data.suits.push({
+                            name: '默认',
+                            orbs: [
+                                [null, null, null],
+                                [null, null, null],
+                                [null, null, null],
+                            ],
+                        });
+                    }
+                    for (let orbID in this.data.orbs) {
+                        let orb = this.data.orbs[orbID];
+                        if (!lib.skill[orb[2][0]] || orb[3] && !lib.skill[orb[3][0]]) {
+                            this.data.brokenOrbs[orbID] = orb;
+                            this.removeOrbs([orbID]);
+                        }
+                    }
+                    for (let orbID in this.data.brokenOrbs) {
+                        let orb = this.data.brokenOrbs[orbID];
+                        if (lib.skill[orb[2][0]] && (!orb[3] || lib.skill[orb[3][0]])) {
+                            this.data.orbs[orbID] = orb;
+                            delete this.data.brokenOrbs[orbID];
+                        }
+                    }
+
+                });
             }
         },
         makeid(length, noDup = false) {
@@ -1697,6 +1973,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 internals.gainOrbs(orbs);
             },
+            /**
+             * standard normal distribution
+             * @returns {number}
+             */
+            randn_bm() {
+                let u = 0, v = 0;
+                while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+                while(v === 0) v = Math.random();
+                let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+                // num = num / 10.0 + 0.5; // Translate to 0 -> 1
+                // if (num > 1 || num < 0) return randn_bm() // resample between 0 and 1
+                return num
+            },
         }
     };
     return {
@@ -1743,15 +2032,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     inte = setInterval(task, 200);
                 }
             })
-            {
-                let characters = Object.keys(lib.characterPack.jlsg_bujiang);
-                if (characters.length) {
-                    lib.config.all.characters.add('jlsg_bujiang');
-                    // Object.defineProperty(lib.characterReplace, characters[0], {
-                    //     get() { return characters.slice(); } 
-                    // });
-                }
-            }
+            // {
+            //     let characters = Object.keys(lib.characterPack.mode_extension_部将);
+            //     if (characters.length) {
+            //         lib.config.all.characters.add('jlsg_bujiang');
+            //         // Object.defineProperty(lib.characterReplace, characters[0], {
+            //         //     get() { return characters.slice(); } 
+            //         // });
+            //     }
+            // }
             // internals.PIXI = new Promise((resolve, reject) => {
             //     script2.addEventListener('load', resolve);
             //     script2.addEventListener('error', reject);
@@ -1816,14 +2105,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 return;
             }
             internals.setupData();
-            game.import('character', () => {
+            {
                 let jlsg_bujiang = {
-                    name: 'jlsg_bujiang',
                     connect: true,
                     character: {
                     },
                     translate: {
-                        jlsg_bujiang: '部将',
+                        // jlsg_bujiang: '部将',
                     }
                 }
                 for (let suit of internals.data.suits) {
@@ -1847,8 +2135,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     ];
                     jlsg_bujiang.translate[suit.name + '_zuoyou'] = suit.name;
                 }
-                return jlsg_bujiang;
-            });
+                game.addCharacterPack(jlsg_bujiang, '部将');
+            }
             lib.init.css(assetURL, 'style');
         },
         config: {
@@ -1862,12 +2150,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             alwaysLanes: {
                 name: '色链常显',
-                intro: '珠子列表总是显示色链需求',
+                intro: '珠子列表总是显示色链需求，目前还没实现打开',
                 init: false,
             },
             quickSwap: {
                 name: '快捷装卸',
-                intro: '装配/合成界面，单击珠子自动装入/卸下',
+                intro: '装配/合成界面，单击珠子自动装入/卸下，目前还没实现关闭',
                 init: true,
             },
             slidingEquip: {
@@ -1919,7 +2207,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     },
                     jlsg_type3: {
                         trigger: { global: 'gameDrawAfter', player: 'enterGame' },
-                        silent: true,
+                        // silent: true,
+                        forced: true,
                         content: function () {
                             player.draw(2);
                         }
@@ -1933,12 +2222,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         content: function () {
                             // debugger;
                             let dialog = trigger.dialog;
-                            if (dialog.bujiangInjected || !lib.characterPack.jlsg_bujiang) {
+                            if (dialog.bujiangInjected || !lib.characterPack.mode_extension_部将) {
                                 event.finish();
                                 return;
                             }
                             dialog.bujiangInjected = true;
-                            if (!lib.characterPack.jlsg_bujiang || !Object.keys(lib.characterPack.jlsg_bujiang).length) {
+                            if (!lib.characterPack.mode_extension_部将 || !Object.keys(lib.characterPack.mode_extension_部将).length) {
                                 event.finish();
                                 return;
                             }
@@ -1968,6 +2257,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             }
                             node.addEventListener('click', e => {
                                 // debugger;
+                                // TODO: needInitialGive aware
                                 let zParent = null;
                                 if (Array.isArray(dialog.buttons) && dialog.buttons[0]) {
                                     zParent = dialog.buttons[0].parentElement;
@@ -1977,7 +2267,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 if (zParent.querySelector('.zuoyou')) {
                                     return;
                                 }
-                                let candidates = Object.keys(lib.characterPack.jlsg_bujiang);
+                                let candidates = Object.keys(lib.characterPack.mode_extension_部将);
                                 let zyName = candidates.randomGet();
                                 lib.characterReplace[zyName] = [zyName, ...candidates.filter(c => c != zyName)];
                                 let zuoyouButton = ui.create.button(
@@ -2003,14 +2293,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
             },
             intro: `\
-是的,没错。部将。建议安装极略自用以获得更好的体验。<br>
+极略，部将。建议安装极略自用以获得更好的体验。<br>
 <a class="jlsgbujiang" onclick="if (window._bujiang) _bujiang.show()">
 打开部将</a><br>
 `,
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.1',
+            version: '0.2.0',
         }, files: { character: [], card: [], skill: [] }
     }
 })

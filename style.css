@@ -6,7 +6,11 @@ a.jlsgbujiang {
     --trans: 0.75;
 }
 .menubg.jlsgbujiang.main {
-    inset: 5%;
+    /* inset: 5%; not supported on obsolete browser */
+    top: 5%;
+    right: 5%;
+    bottom: 5%;
+    left: 5%;
     animation: dialog_start2 0.3s;
     display: flex;
 }
@@ -82,7 +86,11 @@ a.jlsgbujiang {
     height: 100%;
 }
 .jlsgbujiang.filter-panel {
-    inset: 6%;
+    /* inset: 6%; */
+    top: 6%;
+    right: 6%;
+    bottom: 6%;
+    left: 6%;
     padding: 10px;
     background: rgba(0,0,0,0.5);
     box-shadow: 0 0px 2px 1px rgb(30 32 34 / 30%), 0 0px 6px 2px rgb(30 32 34 / 15%);
@@ -99,6 +107,67 @@ a.jlsgbujiang {
     margin: 6px;
     font-size: 26px;
     font-family: 'STXinwei','xinwei';
+}
+.jlsgbujiang.filter-panel > .skill-name-filter {
+    cursor: text;
+    padding: 1em 8px 0.2em 8px;
+    padding-top: 1em;
+    padding-bottom: 0.3em;
+    min-width: 15em;
+}
+.jlsgbujiang.filter-panel > .skill-name-filter:hover::after {
+    content: '';
+    position: absolute;
+    width: 100%; 
+    height: 100%;
+    top:0; 
+    left:0;
+    background:rgba(30,32,34,0.04);
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > input {
+    background: none;
+    outline: none;
+    border: none;
+    display: block;
+    font-size: 18px;
+    width: 100%;
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > label {
+    position: absolute;
+    left: 10px;
+    top: 0.6em;
+    pointer-events: none;
+    color: grey;
+    transition: all 0.3s;
+    outline: none;
+    transform-origin: top left;
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > input:not(:placeholder-shown) ~ label,
+.jlsgbujiang.filter-panel > .skill-name-filter > input:focus ~ label {
+    transform: translateY(-0.6em) scale(0.75);
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > input:placeholder-shown ~ button {
+    display: none;
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > button {
+    z-index: 1;
+    background: none;
+    border: none;
+    position: absolute;
+    top: 0.6em;
+    right: 10px;
+    font-size: inherit;
+    width: 1em;
+    height: 1em;
+    padding: 0.1em;
+    outline: none;
+    background-image: url('./clear_black_24dp.svg');;
+    background-size: cover;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.jlsgbujiang.filter-panel > .skill-name-filter > button:hover {
+    background-color: rgba(30,32,34,0.1);
 }
 .jlsgbujiang.filter-panel > .color-filter > *,
 .jlsgbujiang.filter-panel > .type-filter > * {
@@ -147,6 +216,7 @@ a.jlsgbujiang {
     align-items: flex-start;
     align-content: start;
     flex-wrap: wrap;
+    flex-grow: 1;
     padding: 3px;
     overflow: scroll;
     mask-image: linear-gradient(rgba(0,0,0,1) 95%, rgba(0,0,0,0));
@@ -176,7 +246,7 @@ a.jlsgbujiang {
     display: inline-flex;
     min-width: 100px;
     max-width: 150px;
-    color:rgb(38, 30, 26);
+    /* color:rgb(38, 30, 26); */
 }
 .orblist.jlsgbujiang > .orbdesc {
     flex: 1 0 14%;
@@ -195,10 +265,20 @@ a.jlsgbujiang {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 20%;
     }
+    /* FIXME: temp fix */
+    .suitdisk.jlsgbujiang {
+        margin: calc(var(--trans) * -66.2px) calc(var(--trans) * -77px);
+        transform: scale(0.8);
+    }
 }
 @media (max-width: 1150px) {
     .orblist.jlsgbujiang > .orbdesc {
         flex-basis: 25%;
+    }
+    /* FIXME: temp fix */
+    .suitdisk.jlsgbujiang {
+        margin: calc(var(--trans) * -132.4px) calc(var(--trans) * -154px);
+        transform: scale(0.6);
     }
 }
   
@@ -224,6 +304,8 @@ a.jlsgbujiang {
     filter: drop-shadow(2px 4px 6px red);
 }
 .desctextbox.jlsgbujiang {
+    backface-visibility: hidden;
+    transform: translateZ(0);
     flex: 1;
     position: relative;
     display: inline-flex;
@@ -276,11 +358,9 @@ a.jlsgbujiang {
     position: relative;
 }
 .jlsgbujiang.hint-panel {
-    grid-row: 1;
-    grid-column: 1 / 3;
+    position: relative;
     display: flex;
     flex-direction: column;
-    /* justify-content: flex-end; */
     overflow: scroll;
 }
 .jlsgbujiang.hint-panel > :first-child {
@@ -288,6 +368,11 @@ a.jlsgbujiang {
 }
 .jlsgbujiang.hint-panel > * {
     position: relative;
+}
+.suit-detail.jlsgbujiang > .hint-panel {
+    grid-row: 1;
+    grid-column: 1 / 3;
+    
 }
 .suitdesc.jlsgbujiang {
     position: relative;
@@ -342,9 +427,10 @@ a.jlsgbujiang {
     font-size: 24px;
     font-family: xingkai, xinwei;
     background-color: rgba(20,20,40,0.05);
-    border-radius: 4px;
-    color: black;
+    border-radius: 4px 4px 0 0;
+    color: inherit;
     border: none;
+    border-bottom: 2px solid rgba(20,20,40,0.15);
 }
 .suitsdisks.jlsgbujiang .suit-name:hover {
     background-color: rgba(20,20,40,0.1);
@@ -403,8 +489,11 @@ a.jlsgbujiang {
     height: 90%;
     /* opacity: 0.7; */
 }
-.suitsdisks-inner-box.jlsgbujiang > .suit-save {
+.suitsdisks-inner-box.jlsgbujiang > .suit-save,
+.mix-disk.jlsgbujiang > .mix-button {
     display: flex;
+    align-items: center;
+    justify-content: center;
     bottom: 0;
     margin-bottom: 5px;
     left: calc(50% - 15px);
@@ -414,8 +503,10 @@ a.jlsgbujiang {
     background-color: rgba(20,20,40,0.1);
     border-radius: 4px;
     color: rgba(255,0,0,0.7);
+    cursor: pointer;
 }
-.suitsdisks-inner-box.jlsgbujiang > .suit-save:hover {
+.suitsdisks-inner-box.jlsgbujiang > .suit-save:hover, 
+.mix-disk.jlsgbujiang > .mix-button:hover {
     background-color: rgba(20,20,40,0.2);
 }
 .suitdisk.jlsgbujiang {
@@ -424,7 +515,6 @@ a.jlsgbujiang {
     width: calc(var(--trans) * 385px);
     background-image: url('./bujiang/img_di_zhupan.png');
     background-size: cover;
-    cursor: pointer;
     --dx: 116px;
     --dy: 116px;
     --x0: 43px;
@@ -435,6 +525,7 @@ a.jlsgbujiang {
     --y2: calc(var(--y1) + var(--dy));
 }
 .suitdisk.jlsgbujiang > .orb {
+    cursor: pointer;
     height: calc(var(--trans) * 68px);
     width: calc(var(--trans) * 68px);
 }
@@ -543,4 +634,57 @@ a.jlsgbujiang {
 }
 .jlsgbujiang.orb .inuseorb-hover-popup.removing {
     transform: scale(0.5);
+}
+.jlsgbujiang.mix-detail {
+    margin: 5px;
+}
+.jlsgbujiang.mix-detail > * {
+    position: relative;
+}
+.jlsgbujiang.mix-detail > .hint-panel {
+    /* width: 100%; */
+    height: 50%;
+    margin: 5px 0;
+}
+.jlsgbujiang > .mix-disk {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+.jlsgbujiang > .mix-orb-entry {
+    position: relative;
+    padding: 5px;
+}
+
+.jlsgbujiang > .mix-orb-entry > span {
+    position: absolute;
+    display: flex;
+    pointer-events: none;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: 'STXinwei','xinwei';
+    color: #bbabd3;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    right: 2px;
+    bottom: 2px;
+    left: 0;
+}
+.jlsgbujiang > .mix-orb-entry > .orb:not(.empty) ~ span {
+    display: none;
+}
+.jlsgbujiang > .mix-orb-entry > .orb {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    width: 4em;
+    height: 4em;
+}
+.jlsgbujiang.mix-disk > .mix-button {
+    position: relative;
+    width: 2.5em;
+    height: 1.5em;
+    padding-bottom: 2px;
+    left: 0;
 }
