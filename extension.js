@@ -17,6 +17,24 @@ if (!Array.prototype.flat) {
 		writable: true
 	});
 }
+if (!('IntersectionObserver' in window)) {
+    // actually the service detects the absence automatically so no need to wrap
+    let script = document.createElement('script');
+    script.src = 'https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver';
+    document.head.appendChild(script);
+}
+const skillRequirement = {};
+/** [
+ *      Color: 0 purple,
+ *             1 shu,
+ *             2 qun,
+ *             3 wu,
+ *             4 wei,
+ *      type:  0 | 1(STR) | 2(AGI) | 3(INT)
+ * [skillName, count],
+ * [skillName2, count2]?,
+ * ] 
+ */
 game.import('extension', function (lib, game, ui, get, ai, _status) {
     /** without ending slash! */
     const assetURL = lib.assetURL + 'extension/部将';
@@ -313,10 +331,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 if (!this.filterOrb(id)) continue;
                                 let desc = this._makeOrbDesc(id);
                                 this.listNode.prepend(desc.node);
+                                this.descMap[id] = desc;
                             }
                         }
                     }
                     internals.save();
+                },
+                removeOrbs(orbs) {
+                    for (let orbID of orbs) {
+                        if (this.descMap[orbID]) {
+                            this.descMap[orbID].node.remove();
+                            delete this.descMap[orbID];
+                        }
+                    }
                 },
                 _makeOrbDesc(orbID) {
                     let data = internals.data.orbs[orbID];
@@ -729,11 +756,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         internals.panel.suitDisk.build(suitData, true);
                         let leftButton = document.createElement('button'); this._leftButton = leftButton;
                         leftButton.disabled = true;
-                        leftButton.innerText = '⮜';
+                        leftButton.innerText = '上'; // '⮜'
                         leftButton.onclick = e => { --this.suitIdx; this.update(); }
                         let rightButton = document.createElement('button'); this._rightButton = rightButton;
                         rightButton.disabled = true;
-                        rightButton.innerText = '⮞';
+                        rightButton.innerText = '下'; // '⮞'
                         rightButton.onclick = e => { ++this.suitIdx; this.update(); }
                         let saveNode = document.createElement('div'); this.saveNode = saveNode;
                         saveNode.classList.add('suit-save');
@@ -869,7 +896,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let right = document.createElement("div"); node.appendChild(right);
                     right.classList.add('jlsgbujiang', 'suit-detail');
                     right.appendChild(internals.panel.hintPanel.init());
-                    right.appendChild(document.createElement('div')); // avatar
+                    let avatar = document.createElement('div');
+                    avatar.style.overflow = 'hidden';
+                    right.appendChild(avatar);
+                    let avatarImage = document.createElement('img');
+                    avatar.appendChild(avatarImage);
+                    avatarImage.src = assetURL + '/role/1_bg.png';
+                    avatarImage.style.width = '100%';
                     this.suitDesc.init();
                     right.appendChild(this.suitDesc.node);
                     this.suitsDisks.init();
@@ -1047,7 +1080,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
-                    this.add(`部将0.2.0测试`);
+                    this.add(`部将0.2.2测试`);
                     this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
                     return node;
                 },
@@ -1262,15 +1295,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             this.panel.node = mainPanel;
             // show loading text
             this.panel.loadText(true);
-            [this.config.skillRequirement] = await Promise.all([this.config.skillRequirement, this.Spine]);
-            localStorage.setItem('bujiangSkillRequirement', JSON.stringify(this.config.skillRequirement))
+            await this.Spine;
             this.panel.loadText(false);
             this.start();
             // lib.setHover(mainPanel, () => {});
             // const idb = await import('./modules/index.js');
         },
         config: {
-            skillRequirement: {},
             mixProbability: [
                 [0.88, 0.12, 0, 1, 0, 0],
                 [0.3, 0.6, 0.1, 0, 1, 0],
@@ -1292,6 +1323,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 d: 1.9,
                 x: 0.40,
             },
+            skillRequirement: skillRequirement,
         },
         async save() {
             if (this._isSaving) {
@@ -1304,16 +1336,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         start() {
             if (this.data.states.needInitialGive) {
                 // await Give a random list of orbs
-                /** [
-                 *      Color: 0 purple,
-                 *             1 shu,
-                 *             2 qun,
-                 *             3 wu,
-                 *             4 wei,
-                 *      type:  0 | 1(STR) | 2(AGI) | 3(INT)
-                 * [skillName, count],
-                 * [skillName2, count2]?,
-                 * ] */
                 let gifts = [
                     [1, 1, ['rende', 4], ['paoxiao', 3]],
                     [1, 1, ['rende', 4], ['paoxiao', 3]],
@@ -1350,10 +1372,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             // if (suit.flat().some(id => id && !this.data.orbs[id])) {
             //     return false;
             // }
-            let orbData = [[], [], []];
+            let orbData = [[], [], []], purpleCnt = 0;
             for (let [i, v] of suit.entries()) {
                 for (let [j, w] of v.entries()) {
                     orbData[i][j] = this.data.orbs[w];
+                    if (orbData[i][j] && orbData[i][j][0] === 0) ++purpleCnt;
                 }
             }
             // console.log(orbData);
@@ -1406,6 +1429,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             solve([orbData[0][0], orbData[1][1], orbData[2][2]]);
             solve([orbData[0][2], orbData[1][1], orbData[2][0]]);
+            result.skills = [...new Set(result.skills)];
             let unfulfilledSkills = [];
             for (let sk of result.skills) {
                 let req = this.getSkillRequirement(sk);
@@ -1418,6 +1442,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (result.skills.length > 2) --result.hp;
             if (result.skills.length > 4) --result.hp;
             if (result.types & 1) ++result.hp;
+            // FIXME: temporary purple fix
+            if (purpleCnt > 3) {
+                result.skills = [];
+                result.hp = 1;
+            }
+            else if (purpleCnt == 3) {
+                if (result.hp == 1) {
+                    result.skills = [];
+                } else {
+                    --result.hp;
+                }
+            }
             return result;
         },
         // TODO: caching
@@ -1535,6 +1571,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
             }
             this.config.skillRequirement[name] = temp;
+            if (!this.saveGuard) {
+                this.saveGuard = true;
+                setTimeout(() => {
+                    localStorage.setItem('bujiangSkillRequirement', JSON.stringify(this.config.skillRequirement))
+                    this.saveGuard = false;
+                });
+
+            }
             return temp;
         },
         get bonusReady() {
@@ -1560,7 +1604,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 else return 0;
             } else {
                 if (cnt >= 8) return 5;
-                else if (cnt > 6) return 4;
+                else if (cnt >= 6) return 4;
                 else return 3;
             }
         },
@@ -1595,7 +1639,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             let newOrb = [orbData[2][0], orbData[2][1]];
             {
                 let tier = this._getTier(orbData[0][0], orbData[0][2][1]);
-                let dist = this.config.mixProbability[tier];
+                let dist = this.config.mixProbability[tier].slice();
                 if (newOrb[0] === 0) {
                     dist[0] = dist[1] = dist[2] = 0;
                 } else {
@@ -1607,7 +1651,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             if (orbData[1][3] && orbData[1][3][0] !== orbData[0][2][0]) {
                 let tier = this._getTier(orbData[1][0], orbData[1][3][1]);
-                let dist = this.config.mixProbability[tier];
+                let dist = this.config.mixProbability[tier].slice();
                 if (newOrb[0] === 0) {
                     dist[0] = dist[1] = dist[2] = 0;
                 } else {
@@ -1709,7 +1753,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     addOrb(cnt2, skills);
                 }
                 { // extra full-random orb
-                    let cnt = this.utils.distributionGet([0.2, 0.5, 0.2, 0.1]);
+                    let cnt = this.utils.distributionGet([0.4, 0.3, 0.2, 0.1]);
                     ++cnt;
                     let coeff = get.rank(me.name1, true); // 1=d, 10=sp
                     if (me.name2) {
@@ -1783,7 +1827,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             node.style.minWidth = '280px';
                             winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
                             winDialog.style.transform =
-                                winDialog.style.transform.replace(/translateX\(\d+(px)?\)/, 'translateX(-140px)');
+                                winDialog.style.transform.replace(/translateX\(-?\d+\w*\)/, 'translateX(-140px)');
                             node.addEventListener('transitionend', e2 => {
                                 if (e2 === e) return;
                                 if (!gainedIDs.length) {
@@ -1820,6 +1864,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             for (let id of orbs) {
                 delete this.data.orbs[id];
             }
+            this.panel.orbList.removeOrbs(orbs);
             // update suits
             args.newID = args.newID || null;
             for (let suit of this.data.suits) {
@@ -1865,7 +1910,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             let data = localStorage.getItem('bujiangSkillRequirement')
             if (data) {
-                this.config.skillRequirement = JSON.parse(data);
+                Object.assign(this.config.skillRequirement, JSON.parse(data));
             }
             data = localStorage.getItem('bujiang')
             if (data) {
@@ -1988,16 +2033,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
         }
     };
+    internals.config.skillRequirement;
     return {
         name: '部将',
         content: function (config, pack) {
-            internals.config.skillRequirement = new Promise((resolve, reject) => {
-                lib.init.json(
-                    assetURL + '/skillRequirement.json',
-                    o => resolve(o),
-                    () => reject()
-                );
-            });
             internals.Spine = new Promise((resolve, reject) => {
                 if (window.PIXI) {
                     resolve();
@@ -2098,14 +2137,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             // debug
             window.bujiangI = internals;
-            bujiangI.config.skillRequirement.then(o => { bujiangI.config.skillRequirement = o; });
         },
         precontent: function (config) {
             if (!config.enable) {
                 return;
             }
             internals.setupData();
-            {
+            { // add character pack
                 let jlsg_bujiang = {
                     connect: true,
                     character: {
@@ -2131,7 +2169,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         group,
                         report.hp,
                         report.skills,
-                        ['forbidai']
+                        [
+                            'ext:部将/role/1_bg.png',
+                            'forbidai',
+                        ]
                     ];
                     jlsg_bujiang.translate[suit.name + '_zuoyou'] = suit.name;
                 }
@@ -2300,7 +2341,47 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.2.0',
+            version: '0.2.2',
         }, files: { character: [], card: [], skill: [] }
     }
+})
+// run after precontent (internals.setupData)
+Object.assign(skillRequirement, {
+    "jianxiong": [0,0,0,2],
+    "fankui": [1,0,0,1],
+    "guicai": [0,0,0,2],
+    "ganglie": [0,1,0,1],
+    "tuxi": [0,0,1,2],
+    "luoyi": [0,0,0,1],
+    "tiandu": [0,0,0,2],
+    "yiji": [0,0,1,2],
+    "luoshen": [0,1,0,2],
+    "qingguo": [0,1,0,1],
+    "rende": [1,0,0,0],
+    "wusheng": [1,0,0,1],
+    "paoxiao": [3,0,0,0],
+    "guanxing": [2,0,1,0],
+    "kongcheng": [1,0,0,0],
+    "longdan": [1,1,0,0],
+    "mashu": [1,0,0,1],
+    "tieji": [1,0,1,0],
+    "jizhi": [1,0,0,1],
+    "qicai": [1,0,0,0],
+    "zhiheng": [1,0,2,0],
+    "qixi": [0,0,1,0],
+    "keji": [0,0,1,0],
+    "kurou": [0,0,1,1],
+    "yingzi": [0,0,2,0],
+    "fanjian": [0,0,2,1],
+    "guose": [0,0,2,0],
+    "liuli": [0,0,1,0],
+    "qianxun": [0,0,1,0],
+    "lianying": [0,1,2,0],
+    "xiaoji": [0,0,1,1],
+    "jieyin": [1,0,1,0],
+    "qingnang": [0,2,0,0],
+    "jijiu": [1,1,0,0],
+    "wushuang": [0,2,0,0],
+    "lijian": [0,3,0,0],
+    "biyue": [0,2,0,0],
 })

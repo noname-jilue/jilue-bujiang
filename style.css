@@ -72,6 +72,8 @@ a.jlsgbujiang {
 .jlsgbujiang.orb-list-bar {
     display: flex;
     flex-direction: row-reverse;
+    margin-left: -4px;
+    box-shadow: 1px 1px 2px 0 rgb(60 64 67 / 30%), 2px 2px 6px 2px rgb(60 64 67 / 15%);
     /* height: 32px; */
 
 }
@@ -486,8 +488,10 @@ a.jlsgbujiang {
 }
 .suitsdisks-inner-box.jlsgbujiang > button {
     font-size: 1.5vw;
-    height: 90%;
-    /* opacity: 0.7; */
+    /* opacity: 0.9; */
+    /* height: 90%; not working for some reason on some devices*/
+    align-self: stretch;
+    margin: 5% 0;
 }
 .suitsdisks-inner-box.jlsgbujiang > .suit-save,
 .mix-disk.jlsgbujiang > .mix-button {
@@ -648,7 +652,7 @@ a.jlsgbujiang {
 }
 .jlsgbujiang > .mix-disk {
     display: inline-flex;
-    flex-direction: column;
+    flex-wrap: wrap;
 }
 
 .jlsgbujiang > .mix-orb-entry {
@@ -683,6 +687,7 @@ a.jlsgbujiang {
 }
 .jlsgbujiang.mix-disk > .mix-button {
     position: relative;
+    margin: 5% 25%;
     width: 2.5em;
     height: 1.5em;
     padding-bottom: 2px;
