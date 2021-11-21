@@ -70,6 +70,7 @@ a.jlsgbujiang {
     position: relative;
 }
 .jlsgbujiang.orb-list-bar {
+    z-index: 1;
     display: flex;
     flex-direction: row-reverse;
     margin-left: -4px;
@@ -342,8 +343,8 @@ a.jlsgbujiang {
 .suit-detail.jlsgbujiang {
     display: grid;
     /* align-items: center; */
-    grid-template-columns: 30% auto 45%;
-    grid-template-rows: 50% auto;
+    grid-template-columns: 30% 1fr 45%;
+    grid-template-rows: 50% 1fr;
     gap: 10px;
     margin: 5px;
 }
@@ -416,9 +417,10 @@ a.jlsgbujiang {
 .suitsdisks.jlsgbujiang .name-more-box {
     display: flex;
     position: relative;
-    margin: 0 5%;
+    margin: 0 3%;
 }
 .suitsdisks.jlsgbujiang .suit-name {
+    min-width: 0;
     flex-grow: 1;
     margin: 1px 5px;
     text-align: center;
@@ -436,6 +438,7 @@ a.jlsgbujiang {
     background-color: rgba(20,20,40,0.1);
 }
 .name-more-box.jlsgbujiang > .suits-more {
+    flex-shrink: 0;
     width: 30px;
     height: 30px;
     padding: 3px;
@@ -512,6 +515,8 @@ a.jlsgbujiang {
     background-color: rgba(20,20,40,0.2);
 }
 .suit-disk-wrapper {
+    min-width: 25.667vh;
+    min-height: 22.067vh;
     position: relative;
     height: 75%;
     max-height: 248px;

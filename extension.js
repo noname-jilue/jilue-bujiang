@@ -441,6 +441,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 );
                                 return;
                             }
+                            if (!internals.panel.node || !document.contains(internals.panel.node)) {
+                                return;
+                            }
                             let describe = skillName => {
                                 let hintNode = document.createElement('div');
                                 { // skill name node
@@ -1086,7 +1089,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
-                    this.add(`部将0.2.3测试`);
+                    this.add(`部将0.2.4测试`);
                     this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
                     return node;
                 },
@@ -1301,7 +1304,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             this.panel.node = mainPanel;
             // show loading text
             this.panel.loadText(true);
-            await this.Spine;
+            // await this.Spine;
             this.panel.loadText(false);
             this.start();
             // lib.setHover(mainPanel, () => {});
@@ -1309,12 +1312,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         },
         config: {
             mixProbability: [
-                [0.88, 0.12, 0, 1, 0, 0],
+                [0.85, 0.15, 0, 1, 0, 0],
                 [0.3, 0.6, 0.1, 0, 1, 0],
                 [0, 0.4, 0.6, 0, 0, 1],
                 [1, 0, 0, 0.98, 0.02, 0],
-                [0.5, 0.5, 0, 0, 0.9, 0.1],
-                [0, 0.5, 0.5, 0, 0, 1],
+                [0.45, 0.55, 0, 0, 0.85, 0.15],
+                [0, 0.45, 0.55, 0, 0, 1],
             ],
             coeffMap: { 
                 sp: 0.03,
@@ -1501,7 +1504,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (idx != -1 && lib.character[i.substr(idx + 1)]) {
                             gp.add(lib.character[i.substr(idx + 1)][1]);
                         }
-                        continue;
+                        if (get.rank(i) == 'x') {
+                            continue;
+                        }
                     }
                     let cRank = get.rank(i, true);
                     let newStr = (cRank - 1) / info[3].length;
@@ -1538,6 +1543,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (!tempSum) { // only shen found
                 tempSum = 4;
                 temp = [1, 1, 1, 1];
+                ++temp[raN4[1]];
+                --temp[raN4[2]];
                 strength -= 4;
                 while (strength >= 4) {
                     strength -= 4;
@@ -1545,6 +1552,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     temp = temp.map(i => i + 1);
                 }
                 if (![0, 1].includes(strength)) strength = raN3[1] % 2;
+                strength += tempSum;
             }
             if (tempSum > 1) {
                 strength = Math.min(strength, 5);
@@ -1555,7 +1563,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (temp[i]) ++temp[i];
                     }
                 }
-                for (let i = 0; strength; ++i, --strength) {
+                for (let i = 0; strength > 0; ++i, --strength) {
                     ++temp[raN4[i]];
                 }
             }
@@ -1989,12 +1997,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             delete this.data.brokenOrbs[orbID];
                         }
                     }
-                    // TODO
-                    // if (!this.data.version) { // update to ver.1
-                    //     this.data.version = 1;
-                    //     this.data.brokenOrbs = {}
-
-                    // }
+                    if (!this.data.version) { // update to ver.1
+                        this.data.version = 1;
+                        this.data.brokenOrbs = {}; // force remove all broken orbs
+                        localStorage.removeItem('bujiangSkillRequirement');
+                        bujiangI.save().then(game.reload);
+                    }
                 });
             }
         },
@@ -2020,6 +2028,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             distributionGet(dist) {
                 var res = Math.random();
                 let sum = dist.reduce((a, b) => a + b);
+                console.assert(sum > 0, `utils.distributionGet received param ${JSON.stringify(dist)}`);
                 dist = dist.map(v => v / sum);
                 for (let i = 0; ;) {
                     if (res < dist[i]) return i;
@@ -2372,7 +2381,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.2.3',
+            version: '0.2.4',
         }, files: { character: [], card: [], skill: [] }
     }
 })
