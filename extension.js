@@ -288,7 +288,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 this.descMap[id] = desc;
                             }
                             if (toRenders.length) {
-                                observer.observe(desc.node);
+                                observer.observe(node.lastElementChild);
                             } else {
                                 let endLine = document.createElement('hr');
                                 Object.assign(endLine.style, {
@@ -651,18 +651,16 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         this.colorsNode = document.createElement("div");
                         this.colorsNode.style.cssText = 'transition: all 1s';
                         this.skill.node = document.createElement("div");
-                        this.skill.node.style.cssText = 'transition: all 1s';
                         this.skill.node.classList.add('skills', 'jlsgbujiang');
-                        this.node.append('体力：');
+                        this.node.append('体力 ');
                         this.node.appendChild(this.hpNode);
                         this.node.appendChild(document.createElement('br'));
-                        this.node.append('灵力：');
+                        this.node.append('灵力 ');
                         this.node.appendChild(this.typesNode);
                         this.node.appendChild(document.createElement('br'));
-                        this.node.append('色链：');
+                        this.node.append('色链 ');
                         this.node.appendChild(this.colorsNode);
                         this.node.appendChild(document.createElement('br'));
-                        this.node.append('技能：'); // report.skills.map(s => lib.translate[s]).reduce((a, b) => a + ' ' + b, '')
                         this.node.appendChild(this.skill.node);
                     },
                     get hp() {
@@ -707,11 +705,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         }
                         for (let sk of skills) {
                             if (!(sk in this.skill.skills)) {
-                                // TODO: use better skill button
-                                // TODO: on hover &| focus, highlight respective orbs, show skill info
-                                let skNode = document.createElement("span");
+                                let skNode = ui.create.div('.shadowed.reduce_radius.pointerdiv.tdnode');
                                 this.skill.node.appendChild(skNode);
                                 skNode.innerText = lib.translate[sk].slice(0, 2);
+                                lib.setIntro(skNode, null, true);
+                                // TODO: on hover &| focus, highlight respective orbs, show lane req & num fulfillment info
+                                skNode._customintro = [lib.translate[sk], lib.translate[sk + '_info']];
                                 this.skill.skills[sk] = skNode;
                             }
                         }
@@ -799,8 +798,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             let suitData = internals.data.suits[this.suitIdx];
                             this.name = suitData.name;
                             internals.panel.suitDisk.build(suitData, true);
-                            this._diskNode.replaceWith(internals.panel.suitDisk.node);
-                            this._diskNode = internals.panel.suitDisk.node;
+                            let newNode = document.createElement('div');
+                            newNode.classList.add('suit-disk-wrapper');
+                            let aspectControl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            aspectControl.setAttribute('viewBox', '0 0 385 331')
+                            newNode.appendChild(aspectControl);
+                            newNode.appendChild(internals.panel.suitDisk.node);
+                            internals.panel.suitDisk.node.style.position = 'absolute';
+                            this._diskNode.replaceWith(newNode);
+                            this._diskNode = newNode;
                             let suitReport = internals.report(suitData.orbs); // update description
                             internals.panel.suitPage.suitDesc.update(suitReport);
                         }
@@ -1080,7 +1086,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
-                    this.add(`部将0.2.2测试`);
+                    this.add(`部将0.2.3测试`);
                     this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
                     return node;
                 },
@@ -1490,7 +1496,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 const info = lib.character[i];
                 if (info[3].includes(name)) {
                     gp.add(info[1]);
-                    if (info[1] == 'shen' || i.startsWith('boss')) continue;
+                    if (info[1] == 'shen' || i.startsWith('boss')) {
+                        let idx = i.indexOf('_')
+                        if (idx != -1 && lib.character[i.substr(idx + 1)]) {
+                            gp.add(lib.character[i.substr(idx + 1)][1]);
+                        }
+                        continue;
+                    }
                     let cRank = get.rank(i, true);
                     let newStr = (cRank - 1) / info[3].length;
                     if (cRank != 10) {
@@ -1514,12 +1526,26 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 ++strength;
             }
             strength = Math.floor(strength); strength = Math.min(strength, 8);
+            if (gp.has('shen')) {
+                ++strength;
+            }
             if (gp.has('shu')) temp[0] = 1;
             if (gp.has('qun')) temp[1] = 1;
             if (gp.has('wu')) temp[2] = 1;
             if (gp.has('wei')) temp[3] = 1;
             if (gp.has('jin')) temp[3] = 1;
             let tempSum = temp.reduce((a, b) => a + b);
+            if (!tempSum) { // only shen found
+                tempSum = 4;
+                temp = [1, 1, 1, 1];
+                strength -= 4;
+                while (strength >= 4) {
+                    strength -= 4;
+                    tempSum += 4;
+                    temp = temp.map(i => i + 1);
+                }
+                if (![0, 1].includes(strength)) strength = raN3[1] % 2;
+            }
             if (tempSum > 1) {
                 strength = Math.min(strength, 5);
                 strength -= tempSum;
@@ -1752,7 +1778,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     skills = lib.character[me.name2][3].filter(s => this._allSkills.includes(s));
                     addOrb(cnt2, skills);
                 }
-                { // extra full-random orb
+                if (me.getAllHistory('useCard').length >= 5) { // extra full-random orb
                     let cnt = this.utils.distributionGet([0.4, 0.3, 0.2, 0.1]);
                     ++cnt;
                     let coeff = get.rank(me.name1, true); // 1=d, 10=sp
@@ -1938,7 +1964,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 this.save();
             } else { // solve issues in data
-                lib.arenaReady.push(() => {
+                lib.arenaReady.push(() => { // wait until skills are loaded into lib
                     if (!this.data.suits.length) {
                         this.data.suits.push({
                             name: '默认',
@@ -1963,7 +1989,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             delete this.data.brokenOrbs[orbID];
                         }
                     }
+                    // TODO
+                    // if (!this.data.version) { // update to ver.1
+                    //     this.data.version = 1;
+                    //     this.data.brokenOrbs = {}
 
+                    // }
                 });
             }
         },
@@ -2341,7 +2372,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.2.2',
+            version: '0.2.3',
         }, files: { character: [], card: [], skill: [] }
     }
 })
