@@ -515,6 +515,7 @@ a.jlsgbujiang {
     background-color: rgba(20,20,40,0.2);
 }
 .suit-disk-wrapper {
+    overflow: auto;
     min-width: 25.667vh;
     min-height: 22.067vh;
     position: relative;
@@ -638,8 +639,9 @@ a.jlsgbujiang {
     border: 1px solid #153456;
 }
 .jlsgbujiang.orb .inuseorb-hover-popup {
-    right: 100%;
-    bottom: 100%;
+    /* FIXME: temporary fix to required overflow auto parent */
+    /* right: 100%;
+    bottom: 100%; */
     height: auto;
     z-index: 11;
     background-color: #cfcfcfdf;

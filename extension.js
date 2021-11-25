@@ -45,7 +45,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (!this.node) throw "no panel node attached";
                 let list = this.pagesList.init();
                 this.node.appendChild(list);
-                this.suitPage.show();
+                this.currentPage = 'suit';
             },
             pagesList: {
                 node: null,
@@ -53,10 +53,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let node = document.createElement('div');
                     node.classList.add('jlsgbujiang', 'pageslist');
                     this.node = node;
-                    let suitPageEntry = this._buildItem('装配', () => internals.panel.suitPage.show());
+                    let suitPageEntry = this._buildItem('装配', () => {internals.panel.currentPage = 'suit';});
                     suitPageEntry.setAttribute('active', '');
                     node.appendChild(suitPageEntry);
-                    node.appendChild(this._buildItem('合成', () => internals.panel.mixPage.show()));
+                    node.appendChild(this._buildItem('合成', () => {internals.panel.currentPage = 'mix';}));
                     return node;
                 },
                 _buildItem(text, callback) {
@@ -220,7 +220,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         ui.click.touchpop();
                         const layer = ui.create.div('.popup-container');
                         layer.addEventListener('pointerup', evt => {
-                            if (evt.path.includes(this.filterPanel.node)) {
+                            if (evt.composedPath().includes(this.filterPanel.node)) {
                                 return;
                             }
                             if (_status.dragged) return;
@@ -260,8 +260,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.listNode = node;
                     node.classList.add('orblist', 'jlsgbujiang');
                     internals.data.newOrbs = internals.data.newOrbs.filter(o => o in internals.data.orbs);
-                    if (internals.data.newOrbs.length > 300) {
-                        internals.data.newOrbs.length = 300;
+                    if (internals.data.newOrbs.length > 20) {
+                        internals.data.newOrbs.length = 20;
                         internals.save();
                     }
                     // TODO: apply custom sort
@@ -830,7 +830,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let dropNode = document.createElement('div');
                         dropNode.classList.add('menubg', 'jlsgbujiang', 'suits-more-dropdown')
                         internals.panel.node.addEventListener('pointerup', evt => {
-                            if (!evt.path.includes(dropNode)) {
+                            if (!evt.composedPath().includes(dropNode)) {
                                 evt.stopPropagation();
 
                             }
@@ -916,19 +916,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     right.appendChild(this.suitDesc.node);
                     this.suitsDisks.init();
                     right.appendChild(this.suitsDisks.node);
+                    return node;
                 },
-                show() {
-                    if (internals.panel.currentPage == 'suit') {
-                        return;
-                    }
-                    this.init();
-                    let currentPageNode = internals.panel.node.querySelector('.page-content');
-                    if (currentPageNode) {
-                        currentPageNode.replaceWith(this.node);
-                    } else {
-                        internals.panel.node.appendChild(this.node);
-                    }
-                }
             },
             mixPage: {
                 node: null,
@@ -944,18 +933,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     right.appendChild(this.mixDisk.init());
                     return node;
                 },
-                show() {
-                    if (internals.panel.currentPage == 'mix') {
-                        return;
-                    }
-                    this.init();
-                    let currentPageNode = internals.panel.node.querySelector('.page-content');
-                    if (currentPageNode) {
-                        currentPageNode.replaceWith(this.node);
-                    } else {
-                        internals.panel.node.appendChild(this.node);
-                    }
+                onOpen() {
+                    // TODO: show dismantle button
                     internals.panel.orbList.updateInUse(this.mixDisk.orbs.map(o => o.id));
+                },
+                onClose() {
+                    // TODO: on close remove dismantle button
                 },
                 mixDisk: {
                     node: null,
@@ -1163,6 +1146,32 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 return null;
             },
+            set currentPage(targetPage) {
+                if (targetPage == this.currentPage) return;
+                let currentPageNode = internals.panel.node.querySelector('.page-content');
+                let pageObj;
+                if (this.currentPage && this[this.currentPage + 'Page'].onClose) {
+                    this[this.currentPage + 'Page'].onClose();
+                }
+                switch (targetPage) {
+                    case 'suit':
+                        pageObj = this.suitPage;
+                        break;
+                    case 'mix':
+                        pageObj = this.mixPage;
+                        break;
+                    default:
+                        break;
+                }
+                if (currentPageNode) {
+                    currentPageNode.replaceWith(pageObj.init());
+                } else {
+                    this.node.appendChild(pageObj.init());
+                }
+                if (pageObj.onOpen) {
+                    pageObj.onOpen();
+                }
+            },
             get removeUndo() {
                 return this._removeUndo
                     ? () => { let temp = this._removeUndo; delete this._removeUndo; temp(); }
@@ -1358,6 +1367,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 // alert daily bonus
             }
             this.panel.init();
+            document.addEventListener("backbutton",() => {
+                ui.window.classList.remove('shortcutpaused');
+                ui.window.classList.remove('systempaused');
+                ui.menuContainer.classList.remove('forceopaque');
+                ui.menuContainer.classList.remove('transparent2');
+                ui.arena.classList.remove('blur');
+                ui.system.classList.remove('blur');
+                ui.menuContainer.classList.remove('blur');
+                this.panel.node.delete();
+            }, {
+                once: true
+            });
             // debug
             // for (let id in this.data.orbs) {
             //     let disc = this.panel.orbList._makeOrbDesc(id);
@@ -1496,6 +1517,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             let strength = [];
             // TODO: use fixed character list
             for (const i in lib.character) {
+                if (i.endsWith('_zuoyou')) {
+                    continue;
+                }
                 const info = lib.character[i];
                 if (info[3].includes(name)) {
                     gp.add(info[1]);
@@ -1521,11 +1545,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     strength.push(newStr)
                 }
             }
-            if (!gp.size) return [1, 1, 1, 1];
-            if (!strength.length) {
-                strength = 6;
+            if (!gp.size) {
+                temp = [1,1,1,1];
+                strength = 2;
             } else {
-                strength = strength.reduce((a, b) => a + b) / strength.length;
+                if (!strength.length) {
+                    strength = 6;
+                } else {
+                    strength = strength.reduce((a, b) => a + b) / strength.length;
+                }
             }
             if (strength - Math.floor(strength) > raN4[2] / 3) {
                 ++strength;
@@ -1551,7 +1579,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     tempSum += 4;
                     temp = temp.map(i => i + 1);
                 }
-                if (![0, 1].includes(strength)) strength = raN3[1] % 2;
+                if (![0, 1].includes(strength)) {
+                    strength = (raN3[1] == 0) ? 0 : 1;
+                }
                 strength += tempSum;
             }
             if (tempSum > 1) {
@@ -1714,6 +1744,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let diff = coeff1 - coeff2;
                     coeff1 -= 0.1 * diff;
                     coeff2 += 0.1 * diff;
+                    if (me.name1.includes('zuoyou')) {
+                        coeff2 /= 5;
+                    }
+                }
+                if (me.name1.includes('zuoyou')) {
+                    coeff1 /= 5;
                 }
                 if (me.getAllHistory('useCard').length < 5) { // penalty for fast-forward
                     coeff1 /= 4;
