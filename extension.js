@@ -108,6 +108,18 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         filterButton.innerText = '筛选';
                         filterButton.addEventListener('click', () => this.filterOpen());
                         node.appendChild(filterButton);
+                        let cashIndicate = document.createElement('div');
+                        cashIndicate.classList.add('jlsgbujiang', 'cash');
+                        cashIndicate.addEventListener('click', e => {
+                            if (this.cashHintShown) return;
+                            this.cashHintShown = true;
+                            internals.panel.hintPanel.add('珠砂：目前可以用来辅助合成');
+                        });
+                        let cashImage = document.createElement('img'); cashIndicate.appendChild(cashImage);
+                        cashImage.src = assetURL + '/bujiang/zhusha.png';
+                        this._cashText = document.createElement('span'); cashIndicate.appendChild(this._cashText);
+                        this._cashText.innerText = internals.data.cash;
+                        node.appendChild(cashIndicate);
                         return node;
                     },
                     filterPanel: {
@@ -379,7 +391,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     });
                     let textBox = document.createElement("div"); node.appendChild(textBox);
                     textBox.classList.add('desctextbox', 'jlsgbujiang');
-                    // TODO: add right click popup & always show requirement toggle
+                    // TODO: always show requirement toggle
                     let str1 = lib.translate[data[2][0] + '_ab'] || lib.translate[data[2][0]];
                     str1 = str1.slice(0, 2) + '+' + data[2][1];
                     let desc1 = document.createElement("span"); textBox.appendChild(desc1);
@@ -921,6 +933,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             mixPage: {
                 node: null,
+                dismantle: {
+                    get enable() {
+                        return this.buttonNode && this.buttonNode.classList.contains('bluebg');
+                    },
+                    set enable(value) {
+                        value = !!value;
+                        if (value === this.enable) return;
+                        console.assert(this.buttonNode)
+                        this.buttonNode.classList.toggle('bluebg');
+                    },
+                    buttonNode: null,
+                    infoPanel: null,
+                },
                 init() {
                     let node = document.createElement("div");
                     node.classList.add('page-content');
@@ -935,10 +960,32 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 },
                 onOpen() {
                     // TODO: show dismantle button
+                    let controlBar = internals.panel.orbList.controlBar.node;
+                    console.assert(controlBar);
+                    let node = document.createElement('div'); this.dismantle.buttonNode = node;
+                    node.classList.add('shadowed', 'reduce_radius', 'pointerdiv', 'tdnode');
+                    node.innerText = '分解';
+                    node.addEventListener('click', () => {
+                        this.dismantle.enable = !this.dismantle.enable;
+                    });
+                    let target = controlBar.querySelectorAll('.tdnode');
+                    if (!target.length) {
+                        controlBar.prepend(node);
+                    } else {
+                        target = target[target.length - 1];
+                        controlBar.insertBefore(node, target.nextSibling);
+
+                    }
                     internals.panel.orbList.updateInUse(this.mixDisk.orbs.map(o => o.id));
                 },
                 onClose() {
-                    // TODO: on close remove dismantle button
+                    if (this.dismantle.buttonNode && this.dismantle.buttonNode.classList.contains('bluebg')) {
+                        this.dismantle.enable = false;
+                    }
+                    this.dismantle.buttonNode.delete();
+                    if (this.dismantle.infoPanel) {
+                        this.dismantle.infoPanel.delete();
+                    }
                 },
                 mixDisk: {
                     node: null,
@@ -1744,7 +1791,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let diff = coeff1 - coeff2;
                     coeff1 -= 0.1 * diff;
                     coeff2 += 0.1 * diff;
-                    if (me.name1.includes('zuoyou')) {
+                    if (me.name2.includes('zuoyou')) {
                         coeff2 /= 5;
                     }
                 }
@@ -1916,6 +1963,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }, { once: true });
                 }
             }, 800);
+        },
+        set cash(value) {
+            this.data.cash = value;
+            this.save();
+            let txt = this.panel.orbList.controlBar._cashText;
+            if (txt) txt.innerText = value;
         },
         generateRandomOrb(name1, name2) {
             // color
@@ -2259,10 +2312,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
         config: {
             shortcut: {
                 name: "快捷键",
-                get intro() {
-                    // TODO
-                    return lib.device ? '长按选项→拓展打开部将界面' : '双击选项→拓展打开部将界面';
-                },
+                intro: '双击选项→拓展打开部将界面',
                 init: true,
             },
             alwaysLanes: {
