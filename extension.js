@@ -43,20 +43,25 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             node: null,
             init() {
                 if (!this.node) throw "no panel node attached";
-                let list = this.pagesList.init();
+                let page = this.pageMemory || 'suit';
+                let list = this.pagesList.init(page);
                 this.node.appendChild(list);
-                this.currentPage = 'suit';
+                this.currentPage = page;
             },
             pagesList: {
                 node: null,
-                init() {
+                init(page) {
                     let node = document.createElement('div');
                     node.classList.add('jlsgbujiang', 'pageslist');
                     this.node = node;
-                    let suitPageEntry = this._buildItem('装配', () => {internals.panel.currentPage = 'suit';});
-                    suitPageEntry.setAttribute('active', '');
-                    node.appendChild(suitPageEntry);
-                    node.appendChild(this._buildItem('合成', () => {internals.panel.currentPage = 'mix';}));
+                    let suitPageEntries = {
+                        'suit': this._buildItem('装配', () => {internals.panel.currentPage = 'suit';}),
+                        'mix': this._buildItem('合成', () => {internals.panel.currentPage = 'mix';}),
+                    };
+                    suitPageEntries[page || 'suit'].setAttribute('active', '');
+                    for (let i in suitPageEntries) {
+                        node.appendChild(suitPageEntries[i]);
+                    }
                     return node;
                 },
                 _buildItem(text, callback) {
@@ -79,7 +84,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 let img = document.createElement("img"); orb.appendChild(img);
                 if (!orbData) { // empty orb
                     orb.classList.add('empty');
-                    img.src = assetURL + `/zz/bg.png`;
+                    img.src = assetURL + `/zz/bg.svg`;
                     return orb;
                 }
                 img.src = assetURL + `/zz/color/${orbData[0]}.png`;
@@ -246,9 +251,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     }
                 },
                 init(config = {}) {
-                    if (this.node) {
-                        return this.node;
-                    }
+                    if (this.node) return this.node;
                     this.build(config);
                     let node = document.createElement('div'); this.node = node;
                     node.classList.add('orb-list-wrapper', 'jlsgbujiang');
@@ -374,6 +377,22 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             internals.data.newOrbs.remove(orbID);
                             internals.save();
                         }, { once: true });
+                    }
+                    node.addEventListener('click', e => { // dismantle
+                        if (!internals.panel.mixPage.dismantle.enable) return;
+                        e.stopPropagation();
+                        e.currentTarget.classList.toggle('dismantle');
+                        if (e.currentTarget.classList.contains('dismantle')) {
+                            internals.panel.mixPage.dismantle.selection.add(orbID);
+                        } else {
+                            internals.panel.mixPage.dismantle.selection.delete(orbID);
+                        }
+                        internals.panel.mixPage.dismantle.update();
+                    }, {
+                        capture: true,
+                    });
+                    if (internals.panel.mixPage.dismantle.selection.has(orbID)) {
+                        node.classList.add('dismantle');
                     }
                     let orb = internals.panel._makeOrb(data); node.appendChild(orb);
                     orb.addEventListener('click', e => {
@@ -934,17 +953,58 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             mixPage: {
                 node: null,
                 dismantle: {
+                    /** set up info panel */
+                    init() {
+                        if (this.infoPanel) return;
+                        let node = document.createElement('div'); this.infoPanel = node;
+                        node.classList.add('jlsgbujiang', 'dismantle-panel');
+                        let title = document.createElement('div');
+                        title.classList.add('dismantle-panel-title');
+                        node.appendChild(title);
+                        title.innerHTML = `分解详情`;
+                        let content = document.createElement('div');
+                        content.classList.add('dismantle-panel-content');
+                        node.appendChild(content);
+                        let dismantleInfo = document.createElement('div');
+                        dismantleInfo.classList.add('dismantle-text');
+                        this._dismantleInfo = dismantleInfo
+                        this.update(true);
+                        content.appendChild(dismantleInfo);
+                        let dismantleButton = document.createElement('div');
+                        dismantleButton.classList.add('dismantle-button');
+                        dismantleButton.innerText = `啊`;
+                        content.appendChild(dismantleButton);
+
+                    },
                     get enable() {
                         return this.buttonNode && this.buttonNode.classList.contains('bluebg');
                     },
                     set enable(value) {
                         value = !!value;
                         if (value === this.enable) return;
-                        console.assert(this.buttonNode)
+                        this.init();
+                        console.assert(this.buttonNode && this.infoPanel)
                         this.buttonNode.classList.toggle('bluebg');
+                        if (value) {
+                            internals.panel.hintPanel.add(this.infoPanel);
+                            internals.panel.mixPage.mixDisk.orbs.forEach(
+                                o => o.id && internals.panel.mixPage.mixDisk.unequipOrb(o.id)
+                            );
+                        } else {
+                            this.infoPanel.remove();
+                            this.selection = new Set();
+                            bujiangI.panel.orbList.listNode.querySelectorAll('.dismantle').forEach(n => {
+                                n.classList.remove('dismantle');
+                            });
+                        }
+                    },
+                    update(full= false) {
+                        // TODO
+                        this._dismantleInfo.innerHTML = `已选 100 / 10000<br>彩珠 100 / 1000<br>高级珠 100 / 1000<br>分解可得 10000 珠砂`;
                     },
                     buttonNode: null,
                     infoPanel: null,
+                    selection: new Set(),
                 },
                 init() {
                     let node = document.createElement("div");
@@ -959,29 +1019,29 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     return node;
                 },
                 onOpen() {
-                    // TODO: show dismantle button
                     let controlBar = internals.panel.orbList.controlBar.node;
                     console.assert(controlBar);
-                    let node = document.createElement('div'); this.dismantle.buttonNode = node;
-                    node.classList.add('shadowed', 'reduce_radius', 'pointerdiv', 'tdnode');
-                    node.innerText = '分解';
-                    node.addEventListener('click', () => {
-                        this.dismantle.enable = !this.dismantle.enable;
-                    });
+                    if (!controlBar.contains(this.dismantle.buttonNode)) {
+                        let node = document.createElement('div'); this.dismantle.buttonNode = node;
+                        node.classList.add('shadowed', 'reduce_radius', 'pointerdiv', 'tdnode');
+                        node.innerText = '分解';
+                        node.addEventListener('click', () => {
+                            this.dismantle.enable = !this.dismantle.enable;
+                        });
+                    }
                     let target = controlBar.querySelectorAll('.tdnode');
                     if (!target.length) {
-                        controlBar.prepend(node);
+                        controlBar.prepend(this.dismantle.buttonNode);
                     } else {
                         target = target[target.length - 1];
-                        controlBar.insertBefore(node, target.nextSibling);
+                        controlBar.insertBefore(this.dismantle.buttonNode, target.nextSibling);
 
                     }
+                    this.dismantle.enable = false;
                     internals.panel.orbList.updateInUse(this.mixDisk.orbs.map(o => o.id));
                 },
                 onClose() {
-                    if (this.dismantle.buttonNode && this.dismantle.buttonNode.classList.contains('bluebg')) {
-                        this.dismantle.enable = false;
-                    }
+                    this.dismantle.enable = false;
                     this.dismantle.buttonNode.delete();
                     if (this.dismantle.infoPanel) {
                         this.dismantle.infoPanel.delete();
@@ -1114,34 +1174,38 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             hintPanel: {
                 node: null,
+                hintMap: {},
                 init() {
                     if (this.node) return this.node;
+                    this.hintMap = {};
                     let node = document.createElement('div');
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
-                    this.add(`部将0.2.4测试`);
+                    this.add(`部将${lib.extensionPack.部将.version}测试`);
                     this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
                     return node;
                 },
+                /**
+                 * add a new hint
+                 * if newHint already exists in panel, push it to bottom
+                 * @param {string|Node} newHint hint to add / append
+                 */
                 add(newHint) {
                     if (typeof newHint === 'string') {
-                        let newNode = document.createElement('div');
-                        newNode.innerText = newHint;
-                        newHint = newNode;
+                        if (this.hintMap[newHint]) {
+                            newHint = this.hintMap[newHint];
+                        } else {
+                            let newNode = document.createElement('div');
+                            newNode.innerText = newHint;
+                            this.hintMap[newHint] = newNode;
+                            newHint = newNode;
+                        }
                     }
+                    if (this.node.lastChild === newHint) return;
                     this.node.appendChild(newHint);
-                    Object.assign(newHint.style, {
-                        opacity: '0',
-                        transition: 'all 0.5s',
-                        backgroundColor: 'rgba(20,20,40,0.1)',
-                        borderRadius: '4px',
-                        marginBottom: '4px',
-                        padding: '2px',
-                    });
+                    newHint.style.opacity = 0;
                     requestAnimationFrame(() => {
-                        Object.assign(newHint.style, {
-                            opacity: '1',
-                        });
+                        newHint.style.opacity = 1;
                     });
                     newHint.scrollIntoView(false);
                 },
@@ -1215,6 +1279,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 } else {
                     this.node.appendChild(pageObj.init());
                 }
+                this.pageMemory = targetPage;
                 if (pageObj.onOpen) {
                     pageObj.onOpen();
                 }
@@ -1386,7 +1451,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 bm: 1.3,
                 c: 1.6,
                 d: 1.9,
-                x: 0.40,
+                x: 0.30,
             },
             skillRequirement: skillRequirement,
         },
@@ -1544,6 +1609,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             if (temp) {
                 return temp;
             }
+            if (!lib.skill[name]) {
+                console.warn(`skill "${name}" not found!`);
+                return [9, 9, 9, 9];
+            }
             /** TODO: refine based on drawing etc*/
             temp = [0, 0, 0, 0];
             /** owner group */
@@ -1631,6 +1700,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 strength += tempSum;
             }
+            /** FIXME: drastically decrease chance of skills with single lane requirement type */
             if (tempSum > 1) {
                 strength = Math.min(strength, 5);
                 strength -= tempSum;
@@ -2041,7 +2111,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             }
             if (!this.data || this.data.cheater) {
                 this.data = {
-                    cash: 0,
+                    cash: 180,
                     suits: [
                         {
                             name: '默认',
@@ -2055,6 +2125,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     orbs: {},
                     brokenOrbs: {},
                     newOrbs: [],
+                    version: 1,
                     states: {
                         needInitialGive: true,
                     }
@@ -2298,7 +2369,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         group,
                         report.hp,
                         report.skills,
-                        [
+                        config.shareZuoYou ? [
+                            'ext:部将/role/1_bg.png',
+                        ] : [
                             'ext:部将/role/1_bg.png',
                             'forbidai',
                         ]
@@ -2314,6 +2387,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 name: "快捷键",
                 intro: '双击选项→拓展打开部将界面',
                 init: true,
+            },
+            shareZuoYou: {
+                name: "不如众乐乐",
+                intro: 'AI也可以使用装配的左幽',
+                init: false,
             },
             alwaysLanes: {
                 name: '色链常显',
@@ -2365,6 +2443,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             },
             skill: {
                 skill: {
+                    jlsg_type1: {
+                    },
                     jlsg_type2: {
                         mod: {
                             maxHandcard: function (player, num) {
@@ -2453,6 +2533,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     },
                 },
                 translate: {
+                    jlsg_type2: '力灵',
+                    jlsg_type2_info: '你的体力上限+1',
                     jlsg_type2: '速灵',
                     jlsg_type2_info: '你的手牌上限+1',
                     jlsg_type3: '技灵',

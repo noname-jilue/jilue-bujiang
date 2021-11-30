@@ -94,10 +94,12 @@ a.jlsgbujiang {
     height: 34px;
 }
 .jlsgbujiang.cash > img {
-    height: 100%;
+    height: calc(100% + 6px);
+    margin: -3px 0;
 }
 .jlsgbujiang.cash > span {
-    font-size: 18px;
+    font-family: 'STXinwei','xinwei';
+    font-size: 20px;
     margin-left: 3px;
     bottom: 7px;
     position: relative;
@@ -266,6 +268,10 @@ a.jlsgbujiang {
     max-width: 150px;
     /* color:rgb(38, 30, 26); */
 }
+.orbdesc.jlsgbujiang.dismantle {
+    filter: grayscale(0.6) opacity(0.7);
+    transform: scale(0.75) rotateZ(15deg);
+}
 .orblist.jlsgbujiang > .orbdesc {
     flex: 1 0 14%;
 }
@@ -375,7 +381,15 @@ a.jlsgbujiang {
     margin-top: auto;
 }
 .jlsgbujiang.hint-panel > * {
+    opacity: 1;
     position: relative;
+    transition: all 0.5s;
+    background-color: rgba(20,20,40,0.1);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    /* margin-left: 6px;
+    margin-right: 6px; */
+    padding: 2px;
 }
 .suit-detail.jlsgbujiang > .hint-panel {
     grid-row: 1;
@@ -397,7 +411,7 @@ a.jlsgbujiang {
 }
 .suitdesc.jlsgbujiang .types > img {
     position: relative;
-    margin: -0.2em;
+    margin: -0.25em;
     height: 2em;
     filter: brightness(1.5) grayscale(1);
 }
@@ -506,7 +520,7 @@ a.jlsgbujiang {
     /* opacity: 0.9; */
     /* height: 90%; not working for some reason on some devices*/
     align-self: stretch;
-    margin: 5% 0;
+    /* margin: 5% 0; */
 }
 .suitsdisks-inner-box.jlsgbujiang > .suit-save,
 .mix-disk.jlsgbujiang > .mix-button {
@@ -533,7 +547,7 @@ a.jlsgbujiang {
     min-width: 25.667vh;
     min-height: 22.067vh;
     position: relative;
-    height: 75%;
+    height: 85%;
     max-height: 248px;
 }
 .suit-disk-wrapper > svg {
@@ -683,6 +697,44 @@ a.jlsgbujiang {
     height: 50%;
     margin: 5px 0;
 }
+.hint-panel > .jlsgbujiang.dismantle-panel {
+    margin: 10px 12%;
+    flex: 0 0 25vh;
+}
+.jlsgbujiang.dismantle-panel > .dismantle-panel-title {
+
+    text-align: center;
+    display: block;
+    font-size: 5vh;
+    font-size: clamp(1.5rem, 5vh, 3rem);
+    /* font-size: 26px; */
+    font-family: STXinwei, xinwei;
+    position: relative;
+    white-space: nowrap;
+}
+.jlsgbujiang.dismantle-panel > .dismantle-panel-content {
+    position: relative;
+    display: flex;    
+    justify-content: space-around;
+    min-height: 20vh;
+}
+.jlsgbujiang.dismantle-panel .dismantle-text {
+    font-size: 2.5vh;
+    font-size: clamp(0.8rem, 3vh, 1.2rem);
+    position: relative;
+    margin: auto 0;
+}
+.jlsgbujiang.dismantle-panel .dismantle-button {
+    align-self: flex-end;
+
+    position: relative;
+    font-family: 'xinwei';
+    font-size: 38px;
+    padding: 8px;
+    background-color: rgba(20,20,40,0.2);
+    border-radius: 100%;
+    margin: 2vh 0;
+}
 .jlsgbujiang > .mix-disk {
     display: inline-flex;
     flex-wrap: wrap;
@@ -700,7 +752,7 @@ a.jlsgbujiang {
     writing-mode: vertical-rl;
     text-orientation: upright;
     font-family: 'STXinwei','xinwei';
-    color: #bbabd3;
+    color: #b99fdf;
     align-items: center;
     justify-content: center;
     top: 0;
