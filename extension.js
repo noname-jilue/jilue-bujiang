@@ -967,12 +967,22 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         node.appendChild(content);
                         let dismantleInfo = document.createElement('div');
                         dismantleInfo.classList.add('dismantle-text');
-                        this._dismantleInfo = dismantleInfo
+                        this._dismantleInfo = dismantleInfo;
                         this.update(true);
                         content.appendChild(dismantleInfo);
                         let dismantleButton = document.createElement('div');
+                        dismantleButton.setAttribute('tabindex', '0');
                         dismantleButton.classList.add('dismantle-button');
                         dismantleButton.innerText = `啊`;
+                        dismantleButton.addEventListener('click', e => {
+                            e.currentTarget.blur();
+                            let value = this._dismantleInfo.querySelector('span').innerText.trim();
+                            value = parseInt(value);
+                            internals.cash += value;
+                            internals.removeOrbs([...this.selection]);
+                            this.selection = new Set();
+                            this.update(true);
+                        });
                         content.appendChild(dismantleButton);
 
                     },
@@ -1000,7 +1010,35 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     },
                     update(full= false) {
                         // TODO
-                        this._dismantleInfo.innerHTML = `已选 100 / 10000<br>彩珠 100 / 1000<br>高级珠 100 / 1000<br>分解可得 10000 珠砂`;
+                        let solve = (arr) => {
+                            let purple = 0, rare = 0, value = 0;
+                            for (let orb of arr) {
+                                ++value;
+                                if (orb[0] == 0) {
+                                    ++purple;
+                                    value += 2;
+                                }
+                                let crit1 = [2, 5].includes(internals._getTier(orb[0], orb[2][1]));
+                                let crit2 = orb[3] && [2, 5].includes(internals._getTier(orb[0], orb[3][1]));
+                                crit2 = !!crit2;
+                                rare += crit1 || crit2;
+                                value += crit1 + crit2;
+                            }
+                            return {
+                                purple: purple,
+                                rare: rare,
+                                value: value,
+                            }
+                        }
+                        if (full) {
+                            this._orbInfo = solve(Object.values(internals.data.orbs))
+                        }
+                        let {purple, rare, value} = solve([...this.selection].map(i => internals.data.orbs[i]))
+                        this._dismantleInfo.innerHTML = ` \
+                            已选 ${this.selection.size} / ${Object.keys(internals.data.orbs).length}<br> \
+                            彩珠 ${purple} / ${this._orbInfo.purple}<br> \
+                            高级珠 ${rare} / ${this._orbInfo.rare}<br> \
+                            分解可得 <span>${value} </span>珠砂`;
                     },
                     buttonNode: null,
                     infoPanel: null,
@@ -1081,16 +1119,19 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         node.appendChild(mixButton);
                         mixButton.onclick = () => {
                             let cnt = this.orbs.filter(o => o.id).length;
-                            let suffice = internals.data.cash >= (3 - cnt) * 10;
-                            if (cnt && suffice) {
-                                // TODO: enable imcomplete mix at the cost of cash
+                            let cost = (3 - cnt) * 10;
+                            if (cnt && internals.cash >= cost) {
+                                internals.cash -= cost;
                                 let oldOrbs = this.orbs.map(o => o.id);
-                                oldOrbs.forEach(o => this.unequipOrb(o));
+                                oldOrbs.forEach(o => o && this.unequipOrb(o));
                                 let orbID = internals.mixOrb(oldOrbs);
-                                this.focus = 0;
-                                internals.panel.focus(this.node.querySelector('.orb'));
+                                // this.focus = 0;
+                                internals.panel.focus(this.orbs[this.focus].node);
                             } else {
-                                internals.panel.hintPanel.add('没有足够的珠砂');
+                                internals.panel.hintPanel.add(cnt ? 
+                                    `需要填满合成所需槽位或者提供${cost}珠砂` :
+                                    `请填入至少一个珠子`
+                                );
                             }
                         }
                         this.focus = null;
@@ -1812,11 +1853,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
          * @param {[String, String, String]} orbs 
          */
         mixOrb(orbs) {
-            // TODO: enable imcomplete mix at the cost of cash
             let orbData = orbs.map(o => this.data.orbs[o]);
-            if (orbData.some(o => !o)) {
-                throw 'orb not found while mixing';
-            }
+            orbData = orbData.map(o => o || this.generateRandomOrb(this.allSkills.randomGet(), this.allSkills.randomGet()));
             let newOrb = [orbData[2][0], orbData[2][1]];
             {
                 let tier = this._getTier(orbData[0][0], orbData[0][2][1]);
@@ -1843,8 +1881,27 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 newOrb.push([orbData[1][3][0], newNum]);
             }
             let [id] = this.gainOrbs([newOrb]);
-            this.removeOrbs(orbs, { newID: id });
+            this.removeOrbs(orbs.filter(o => o), { newID: id });
             return id;
+        },
+        get allSkills() {
+            delete this.allSkills;
+            this._rankSkills = {};
+            for (let key of Array(10).keys()) this._rankSkills[key + 1] = [];
+            let skills = [];
+            for (let c in lib.character) {
+                if (lib.filter.characterDisabled(c)) continue;
+                let rank = get.rank(c, true);
+                for (let sk of lib.character[c][3]) {
+                    if (lib.skill[sk] && !lib.skill[sk].zhuSkill && !lib.skill[sk].juexingji && // !lib.skill[sk].unique &&
+                        lib.translate[sk] && lib.translate[sk + '_info']) {
+                        skills.push(sk);
+                        this._rankSkills[rank].push(sk);
+                    }
+                }
+            }
+            this.allSkills = skills;
+            return this.allSkills;
         },
         gameOver(result) {
             if (_status.video) return;
@@ -1897,34 +1954,17 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         break;
                     }
                 }
-                if (!this._allSkills) {
-                    this._rankSkills = {};
-                    for (let key of Array(10).keys()) this._rankSkills[key + 1] = [];
-                    let skills = [];
-                    for (let c in lib.character) {
-                        if (lib.filter.characterDisabled(c)) continue;
-                        let rank = get.rank(c, true);
-                        for (let sk of lib.character[c][3]) {
-                            if (lib.skill[sk] && !lib.skill[sk].zhuSkill && !lib.skill[sk].juexingji && // !lib.skill[sk].unique &&
-                                lib.translate[sk] && lib.translate[sk + '_info']) {
-                                skills.push(sk);
-                                this._rankSkills[rank].push(sk);
-                            }
-                        }
-                    }
-                    this._allSkills = skills;
-                }
-                let skills = lib.character[me.name1][3].filter(s => this._allSkills.includes(s));
+                let skills = lib.character[me.name1][3].filter(s => this.allSkills.includes(s));
                 let addOrb = (cnt, skills) => {
                     if (!skills.length) return;
                     while (cnt) {
                         --cnt;
                         // only skill, skill at 1, skill at 2
                         let skillType = this.utils.distributionGet([0.5, 0.2, 0.3]);
-                        let names = [skills.randomGet() || this._allSkills.randomGet()];
+                        let names = [skills.randomGet() || this.allSkills.randomGet()];
                         let name2 = names[0];
                         while (name2 === names[0]) {
-                            name2 = this._allSkills.randomGet();
+                            name2 = this.allSkills.randomGet();
                         }
                         if (skillType == 2) {
                             names.unshift(name2);
@@ -1936,7 +1976,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 addOrb(cnt1, skills);
                 if (me.name2) {
-                    skills = lib.character[me.name2][3].filter(s => this._allSkills.includes(s));
+                    skills = lib.character[me.name2][3].filter(s => this.allSkills.includes(s));
                     addOrb(cnt2, skills);
                 }
                 if (me.getAllHistory('useCard').length >= 5) { // extra full-random orb
@@ -2034,6 +2074,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
             }, 800);
         },
+        get cash () {
+            return this.data.cash;
+        },
         set cash(value) {
             this.data.cash = value;
             this.save();
@@ -2044,7 +2087,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             // color
             let newOrb = [get.rand(5)]
             // type
-            newOrb.push(this.utils.distributionGet([0.4, 0.2, 0.2, 0.2]));
+            newOrb.push(this.utils.distributionGet([0.34, 0.22, 0.22, 0.22]));
             let tier = this.utils.distributionGet([0.6, 0.3, 0.1]) + (newOrb[0] == 0 ? 3 : 0);
             newOrb.push([name1, this._resolveTier(tier)]);
             if (name2 && name2 != name1) {
@@ -2549,7 +2592,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.2.4',
+            version: '0.3.0',
         }, files: { character: [], card: [], skill: [] }
     }
 })

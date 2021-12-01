@@ -726,14 +726,21 @@ a.jlsgbujiang {
 }
 .jlsgbujiang.dismantle-panel .dismantle-button {
     align-self: flex-end;
-
+    
     position: relative;
     font-family: 'xinwei';
     font-size: 38px;
     padding: 8px;
-    background-color: rgba(20,20,40,0.2);
+    background-color: rgba(20,20,20,0.2);
     border-radius: 100%;
     margin: 2vh 0;
+}
+.jlsgbujiang.dismantle-panel .dismantle-button:hover {
+    background-color: rgba(20,20,20,0.3);
+}
+.jlsgbujiang.dismantle-panel .dismantle-button:focus {
+    background-color: rgba(20,20,20,0.4);
+    transition-duration: 0.2s;
 }
 .jlsgbujiang > .mix-disk {
     display: inline-flex;
