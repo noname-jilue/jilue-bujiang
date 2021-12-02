@@ -1,21 +1,21 @@
 if (!Array.prototype.flat) {
-	Object.defineProperty(Array.prototype, 'flat', {
-		configurable: true,
-		value: function flat () {
-			var depth = isNaN(arguments[0]) ? 1 : Number(arguments[0]);
+    Object.defineProperty(Array.prototype, 'flat', {
+        configurable: true,
+        value: function flat() {
+            var depth = isNaN(arguments[0]) ? 1 : Number(arguments[0]);
 
-			return depth ? Array.prototype.reduce.call(this, function (acc, cur) {
-				if (Array.isArray(cur)) {
-					acc.push.apply(acc, flat.call(cur, depth - 1));
-				} else {
-					acc.push(cur);
-				}
+            return depth ? Array.prototype.reduce.call(this, function (acc, cur) {
+                if (Array.isArray(cur)) {
+                    acc.push.apply(acc, flat.call(cur, depth - 1));
+                } else {
+                    acc.push(cur);
+                }
 
-				return acc;
-			}, []) : Array.prototype.slice.call(this);
-		},
-		writable: true
-	});
+                return acc;
+            }, []) : Array.prototype.slice.call(this);
+        },
+        writable: true
+    });
 }
 if (!('IntersectionObserver' in window)) {
     // actually the service detects the absence automatically so no need to wrap
@@ -55,8 +55,8 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     node.classList.add('jlsgbujiang', 'pageslist');
                     this.node = node;
                     let suitPageEntries = {
-                        'suit': this._buildItem('装配', () => {internals.panel.currentPage = 'suit';}),
-                        'mix': this._buildItem('合成', () => {internals.panel.currentPage = 'mix';}),
+                        'suit': this._buildItem('装配', () => { internals.panel.currentPage = 'suit'; }),
+                        'mix': this._buildItem('合成', () => { internals.panel.currentPage = 'mix'; }),
                     };
                     suitPageEntries[page || 'suit'].setAttribute('active', '');
                     for (let i in suitPageEntries) {
@@ -326,14 +326,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let names = filterConfig.skillName.split(' ').filter(s => s);
                         for (let name of names) {
                             if (orb[3]) {
-                                if (orb[3][0].includes(name) || 
-                                lib.translate[orb[3][0]] && lib.translate[orb[3][0]].includes(name)) {
+                                if (orb[3][0].includes(name) ||
+                                    lib.translate[orb[3][0]] && lib.translate[orb[3][0]].includes(name)) {
                                     continue;
                                 }
                             }
                             if (!orb[2][0].includes(name) && !(lib.translate[orb[2][0]] && lib.translate[orb[2][0]].includes(name))) {
                                 return false;
-                            } 
+                            }
                         }
                     }
                     return filterConfig.colors[orb[0]] && filterConfig.types[orb[1]];
@@ -1008,7 +1008,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             });
                         }
                     },
-                    update(full= false) {
+                    update(full = false) {
                         // TODO
                         let solve = (arr) => {
                             let purple = 0, rare = 0, value = 0;
@@ -1033,7 +1033,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         if (full) {
                             this._orbInfo = solve(Object.values(internals.data.orbs))
                         }
-                        let {purple, rare, value} = solve([...this.selection].map(i => internals.data.orbs[i]))
+                        let { purple, rare, value } = solve([...this.selection].map(i => internals.data.orbs[i]))
                         this._dismantleInfo.innerHTML = ` \
                             已选 ${this.selection.size} / ${Object.keys(internals.data.orbs).length}<br> \
                             彩珠 ${purple} / ${this._orbInfo.purple}<br> \
@@ -1128,7 +1128,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 // this.focus = 0;
                                 internals.panel.focus(this.orbs[this.focus].node);
                             } else {
-                                internals.panel.hintPanel.add(cnt ? 
+                                internals.panel.hintPanel.add(cnt ?
                                     `需要填满合成所需槽位或者提供${cost}珠砂` :
                                     `请填入至少一个珠子`
                                 );
@@ -1168,7 +1168,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             return;
                         }
                         console.assert(this.node.children[this.focus].querySelector('.orb').classList.contains('focused'));
-                        let {id, node} = this.orbs[this.focus];
+                        let { id, node } = this.orbs[this.focus];
                         if (id) {
                             internals.panel.orbList.removeInUse(id);
                         }
@@ -1191,7 +1191,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let newChild = internals.panel._makeOrb();
                         newChild.addEventListener('click', this._toggler());
                         for (let i of Array(3).keys()) {
-                            let {id, node} = this.orbs[i];
+                            let { id, node } = this.orbs[i];
                             if (id != orbID) continue;
                             this.orbs[i] = {
                                 id: null,
@@ -1210,7 +1210,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         let cnt = this.orbs.filter(o => o.id).length;
                         let suffice = (3 - cnt) * 10 >= internals.data.cash;
                     },
-                    
+
                 }
             },
             hintPanel: {
@@ -1481,11 +1481,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 [0.45, 0.55, 0, 0, 0.85, 0.15],
                 [0, 0.45, 0.55, 0, 0, 1],
             ],
-            coeffMap: { 
+            coeffMap: {
                 sp: 0.03,
-                s: 0.08,
+                s: 0.07,
                 ap: 0.15,
-                a: 0.45,
+                a: 0.4,
                 am: 0.6,
                 bp: 0.9,
                 b: 1.1,
@@ -1520,7 +1520,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 // alert daily bonus
             }
             this.panel.init();
-            document.addEventListener("backbutton",() => {
+            document.addEventListener("backbutton", () => {
                 ui.window.classList.remove('shortcutpaused');
                 ui.window.classList.remove('systempaused');
                 ui.menuContainer.classList.remove('forceopaque');
@@ -1703,7 +1703,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
             }
             if (!gp.size) {
-                temp = [1,1,1,1];
+                temp = [1, 1, 1, 1];
                 strength = 2;
             } else {
                 if (!strength.length) {
@@ -1904,8 +1904,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             return this.allSkills;
         },
         gameOver(result) {
+            if (ui.hyperSpeed) {
+                ui.hyperSpeed.close();
+                delete ui.hyperSpeed;
+            }
             if (_status.video) return;
             let resolveRewards = () => {
+                console.log('gameplay action', window.gameplayAction);
                 let result = [];
                 let me = game.me._trueMe || game.me;
                 let coeff1, coeff2 = 0;
@@ -1986,7 +1991,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     if (me.name2) {
                         coeff = (coeff + get.rank(me.name2, true)) / 2;
                     }
-                    coeff = -2/3 * coeff + 23/3; // map d ~ sp to a ~ d
+                    coeff = -2 / 3 * coeff + 23 / 3; // map d ~ sp to a ~ d
                     let ranks = [];
                     while (ranks.length < cnt) {
                         let rank = Math.round(this.utils.randn_bm() + coeff);
@@ -2074,7 +2079,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
             }, 800);
         },
-        get cash () {
+        get cash() {
             return this.data.cash;
         },
         set cash(value) {
@@ -2267,12 +2272,26 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
              */
             randn_bm() {
                 let u = 0, v = 0;
-                while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-                while(v === 0) v = Math.random();
-                let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+                while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+                while (v === 0) v = Math.random();
+                let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
                 // num = num / 10.0 + 0.5; // Translate to 0 -> 1
                 // if (num > 1 || num < 0) return randn_bm() // resample between 0 and 1
                 return num
+            },
+            hyperSpeed() {
+                this.classList.toggle('glow');
+                if (this.classList.contains('glow')) {
+                    lib.config._game_speed = lib.config.game_speed;
+                    lib.config._sync_speed = lib.config.sync_speed;
+                    lib.config.game_speed = 'vvfast';
+                    lib.config.sync_speed = false;
+                } else {
+                    lib.config.game_speed = lib.config._game_speed;
+                    lib.config.sync_speed = lib.config._sync_speed;
+                    delete lib.config._game_speed;
+                    delete lib.config._sync_speed;
+                }
             },
         }
     };
@@ -2376,7 +2395,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             window._bujiang = {
                 show() {
                     internals.show();
-                }
+                },
+                get hyperSpeed() {
+                    return internals.utils.hyperSpeed;
+                },
             }
             // debug
             window.bujiangI = internals;
@@ -2429,6 +2451,23 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             shortcut: {
                 name: "快捷键",
                 intro: '双击选项→拓展打开部将界面',
+                init: true,
+            },
+            hyperSpeed: {
+                name: "高速",
+                intro: '阵亡后显示高速结算按钮',
+                onclick(bool) {
+                    game.saveConfig(this._link.config._name, bool);
+                    if (bool) {
+                        if (!ui.hyperSpeed && game.me.isDead() && !_status.connectMode) {
+                            ui.hyperSpeed = ui.create.control('高速', internals.utils.hyperSpeed);
+                        }
+                    }
+                    else if (ui.hyperSpeed) {
+                        ui.hyperSpeed.close();
+                        delete ui.hyperSpeed;
+                    }
+                },
                 init: true,
             },
             shareZuoYou: {
@@ -2506,7 +2545,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     _showBujiang: {
                         trigger: { player: 'chooseButtonBegin' },
                         silent: true,
-                        filter: function(event, player) {
+                        filter: function (event, player) {
                             return event.parent.name == 'chooseCharacter' && event.dialog;
                         },
                         content: function () {
@@ -2561,7 +2600,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 let zyName = candidates.randomGet();
                                 lib.characterReplace[zyName] = [zyName, ...candidates.filter(c => c != zyName)];
                                 let zuoyouButton = ui.create.button(
-                                    zyName, 
+                                    zyName,
                                     'characterx',
                                     zParent
                                 );
@@ -2572,6 +2611,46 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 game.uncheck();
                                 game.check();
                             });
+                            window.gameplayAction = 0;
+                        },
+                    },
+                    _BJ_calcActions: {
+                        trigger: {
+                            player: [
+                                'chooseToUseBegin',
+                                'chooseToRespondBegin',
+                                'chooseToDiscardBegin',
+                                'chooseCardBegin',
+                                'chooseTargetBegin',
+                                'chooseCardTargetBegin',
+                                'chooseBoolBegin',
+                                // 'chooseButtonBegin',
+                            ]
+                        },
+                        silent: true,
+                        filter(event, player) {
+                            return player === game.me && !_status.auto;
+                        },
+                        content() {
+                            if (trigger.name == 'chooseBool') {
+                                if (trigger.frequentSkill && !lib.config.autoskilllist.contains(trigger.frequentSkill)) {
+                                    return;
+                                }
+                            }
+                            ++window.gameplayAction;
+                        },
+                    },
+                    _BJ_hyperSpeed: {
+                        trigger: {
+                            player: 'dieAfter'
+                        },
+                        silent: true,
+                        forceDie: true,
+                        filter(event, player) {
+                            return player == game.me && game.getExtensionConfig('部将', 'hyperSpeed');
+                        },
+                        content() {
+                            ui.hyperSpeed = ui.create.control('高速', window._bujiang.hyperSpeed);
                         },
                     },
                 },
@@ -2598,41 +2677,41 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
 })
 // run after precontent (internals.setupData)
 Object.assign(skillRequirement, {
-    "jianxiong": [0,0,0,2],
-    "fankui": [1,0,0,1],
-    "guicai": [0,0,0,2],
-    "ganglie": [0,1,0,1],
-    "tuxi": [0,0,1,2],
-    "luoyi": [0,0,0,1],
-    "tiandu": [0,0,0,2],
-    "yiji": [0,0,1,2],
-    "luoshen": [0,1,0,2],
-    "qingguo": [0,1,0,1],
-    "rende": [1,0,0,0],
-    "wusheng": [1,0,0,1],
-    "paoxiao": [3,0,0,0],
-    "guanxing": [2,0,1,0],
-    "kongcheng": [1,0,0,0],
-    "longdan": [1,1,0,0],
-    "mashu": [1,0,0,1],
-    "tieji": [1,0,1,0],
-    "jizhi": [1,0,0,1],
-    "qicai": [1,0,0,0],
-    "zhiheng": [1,0,2,0],
-    "qixi": [0,0,1,0],
-    "keji": [0,0,1,0],
-    "kurou": [0,0,1,1],
-    "yingzi": [0,0,2,0],
-    "fanjian": [0,0,2,1],
-    "guose": [0,0,2,0],
-    "liuli": [0,0,1,0],
-    "qianxun": [0,0,1,0],
-    "lianying": [0,1,2,0],
-    "xiaoji": [0,0,1,1],
-    "jieyin": [1,0,1,0],
-    "qingnang": [0,2,0,0],
-    "jijiu": [1,1,0,0],
-    "wushuang": [0,2,0,0],
-    "lijian": [0,3,0,0],
-    "biyue": [0,2,0,0],
+    "jianxiong": [0, 0, 0, 2],
+    "fankui": [1, 0, 0, 1],
+    "guicai": [0, 0, 0, 2],
+    "ganglie": [0, 1, 0, 1],
+    "tuxi": [0, 0, 1, 2],
+    "luoyi": [0, 0, 0, 1],
+    "tiandu": [0, 0, 0, 2],
+    "yiji": [0, 0, 1, 2],
+    "luoshen": [0, 1, 0, 2],
+    "qingguo": [0, 1, 0, 1],
+    "rende": [1, 0, 0, 0],
+    "wusheng": [1, 0, 0, 1],
+    "paoxiao": [3, 0, 0, 0],
+    "guanxing": [2, 0, 1, 0],
+    "kongcheng": [1, 0, 0, 0],
+    "longdan": [1, 1, 0, 0],
+    "mashu": [1, 0, 0, 1],
+    "tieji": [1, 0, 1, 0],
+    "jizhi": [1, 0, 0, 1],
+    "qicai": [1, 0, 0, 0],
+    "zhiheng": [1, 0, 2, 0],
+    "qixi": [0, 0, 1, 0],
+    "keji": [0, 0, 1, 0],
+    "kurou": [0, 0, 1, 1],
+    "yingzi": [0, 0, 2, 0],
+    "fanjian": [0, 0, 2, 1],
+    "guose": [0, 0, 2, 0],
+    "liuli": [0, 0, 1, 0],
+    "qianxun": [0, 0, 1, 0],
+    "lianying": [0, 1, 2, 0],
+    "xiaoji": [0, 0, 1, 1],
+    "jieyin": [1, 0, 1, 0],
+    "qingnang": [0, 2, 0, 0],
+    "jijiu": [1, 1, 0, 0],
+    "wushuang": [0, 2, 0, 0],
+    "lijian": [0, 3, 0, 0],
+    "biyue": [0, 2, 0, 0],
 })
