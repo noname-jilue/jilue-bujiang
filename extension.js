@@ -1679,7 +1679,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 const info = lib.character[i];
                 if (info[3].includes(name)) {
-                    gp.add(info[1]);
+                    if (['wei', 'shu', 'wu', 'qun', 'jin', 'shen'].includes(info[1])) {
+                        gp.add(info[1]);
+                    }
                     if (info[1] == 'shen' || i.startsWith('boss')) {
                         let idx = i.indexOf('_')
                         if (idx != -1 && lib.character[i.substr(idx + 1)]) {
@@ -1913,7 +1915,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 console.log('gameplay action', window.gameplayAction);
                 let result = [];
                 let me = game.me._trueMe || game.me;
-                let coeff1, coeff2 = 0;
+                let coeff1, coeff2 = 0, fullRandCnt = 0;
                 coeff1 = this.config.coeffMap[get.rank(me.name1)];
                 if (me.name2) {
                     coeff2 = this.config.coeffMap[get.rank(me.name2)];
@@ -1924,19 +1926,26 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     coeff1 -= 0.1 * diff;
                     coeff2 += 0.1 * diff;
                     if (me.name2.includes('zuoyou')) {
-                        coeff2 /= 5;
+                        coeff2 /= 3;
                     }
                 }
                 if (me.name1.includes('zuoyou')) {
-                    coeff1 /= 5;
+                    coeff1 /= 3;
                 }
-                if (me.getAllHistory('useCard').length < 5) { // penalty for fast-forward
-                    coeff1 /= 4;
-                    coeff2 /= 4;
-                } else {
-                    if (result) {
-                        coeff1 *= 1.5;
-                        coeff2 *= 1.5;
+                if (result) {
+                    coeff1 *= 1.5;
+                    coeff2 *= 1.5;
+                }
+                {
+                    if (window.gameplayAction <= 25) {
+                        coeff1 *= window.gameplayAction / 25;
+                        coeff2 *= window.gameplayAction / 25;
+                    } else {
+                        coeff1 *= Math.sqrt(window.gameplayAction / 25);
+                        coeff2 *= Math.sqrt(window.gameplayAction / 25);
+                    }
+                    for (let i = 9; i <= window.gameplayAction; i *= 2) {
+                        fullRandCnt += this.utils.distributionGet([0.3, 0.4, 0.3]);
                     }
                 }
                 let cnt1 = 0, cnt2 = 0, revive = true;
@@ -1985,15 +1994,13 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     addOrb(cnt2, skills);
                 }
                 if (me.getAllHistory('useCard').length >= 5) { // extra full-random orb
-                    let cnt = this.utils.distributionGet([0.4, 0.3, 0.2, 0.1]);
-                    ++cnt;
                     let coeff = get.rank(me.name1, true); // 1=d, 10=sp
                     if (me.name2) {
                         coeff = (coeff + get.rank(me.name2, true)) / 2;
                     }
                     coeff = -2 / 3 * coeff + 23 / 3; // map d ~ sp to a ~ d
                     let ranks = [];
-                    while (ranks.length < cnt) {
+                    while (ranks.length < fullRandCnt) {
                         let rank = Math.round(this.utils.randn_bm() + coeff);
                         if (rank < 1) rank = 1;
                         if (rank > 9) rank = 9;
@@ -2459,7 +2466,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 onclick(bool) {
                     game.saveConfig(this._link.config._name, bool);
                     if (bool) {
-                        if (!ui.hyperSpeed && game.me.isDead() && !_status.connectMode) {
+                        if (!ui.hyperSpeed && game.me.isDead() && game.players.length > 1 && !_status.connectMode) {
                             ui.hyperSpeed = ui.create.control('高速', internals.utils.hyperSpeed);
                         }
                     }
@@ -2647,7 +2654,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         silent: true,
                         forceDie: true,
                         filter(event, player) {
-                            return player == game.me && game.getExtensionConfig('部将', 'hyperSpeed');
+                            return player == game.me && game.players.length > 1 && game.getExtensionConfig('部将', 'hyperSpeed');
                         },
                         content() {
                             ui.hyperSpeed = ui.create.control('高速', window._bujiang.hyperSpeed);
@@ -2671,7 +2678,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             author: 'xiaoas',
             diskURL: '',
             forumURL: '',
-            version: '0.3.0',
+            version: '0.3.1',
         }, files: { character: [], card: [], skill: [] }
     }
 })

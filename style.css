@@ -1,3 +1,7 @@
+@font-face {
+    font-family: "Ubuntu Mono";
+    src: url("./fonts/UbuntuMono-Regular.woff2");
+}
 a.jlsgbujiang {
     cursor: pointer;
     text-decoration: underline;
@@ -639,6 +643,7 @@ a.jlsgbujiang {
 .jlsgbujiang.color-lanes {
     display: block;
     position: relative;
+    /* font-family: "PingFang SC", "Ubuntu Mono"; */
 }
 .jlsgbujiang.color-lanes > span {
     padding: 0 0.25em;
