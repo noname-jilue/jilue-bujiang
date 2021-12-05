@@ -1937,14 +1937,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     coeff2 *= 1.5;
                 }
                 {
-                    if (window.gameplayAction <= 25) {
-                        coeff1 *= window.gameplayAction / 25;
-                        coeff2 *= window.gameplayAction / 25;
+                    if (window.gameplayAction <= 20) {
+                        coeff1 *= window.gameplayAction / 20;
+                        coeff2 *= window.gameplayAction / 20;
                     } else {
-                        coeff1 *= Math.sqrt(window.gameplayAction / 25);
-                        coeff2 *= Math.sqrt(window.gameplayAction / 25);
+                        coeff1 *= Math.sqrt(window.gameplayAction / 20);
+                        coeff2 *= Math.sqrt(window.gameplayAction / 20);
                     }
-                    for (let i = 9; i <= window.gameplayAction; i *= 2) {
+                    for (let i = 7; i <= window.gameplayAction; i *= 2) {
                         fullRandCnt += this.utils.distributionGet([0.3, 0.4, 0.3]);
                     }
                 }
@@ -2618,7 +2618,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 game.uncheck();
                                 game.check();
                             });
-                            window.gameplayAction = 0;
                         },
                     },
                     _BJ_calcActions: {
@@ -2643,6 +2642,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 if (trigger.frequentSkill && !lib.config.autoskilllist.contains(trigger.frequentSkill)) {
                                     return;
                                 }
+                            }
+                            if (!window.gameplayAction) {
+                                window.gameplayAction = 0;
                             }
                             ++window.gameplayAction;
                         },
