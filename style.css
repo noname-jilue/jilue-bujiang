@@ -131,14 +131,15 @@ a.jlsgbujiang {
     font-size: 26px;
     font-family: 'STXinwei','xinwei';
 }
-.jlsgbujiang.filter-panel > .skill-name-filter {
+.jlsgbujiang.material-input {
     cursor: text;
+    font-size: 26px;
     padding: 1em 8px 0.2em 8px;
     padding-top: 1em;
     padding-bottom: 0.3em;
     min-width: 15em;
 }
-.jlsgbujiang.filter-panel > .skill-name-filter:hover::after {
+.jlsgbujiang.material-input:hover::after {
     content: '';
     position: absolute;
     width: 100%; 
@@ -147,7 +148,7 @@ a.jlsgbujiang {
     left:0;
     background:rgba(30,32,34,0.04);
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > input {
+.jlsgbujiang.material-input > input {
     color: inherit;
     background: none;
     outline: none;
@@ -156,7 +157,7 @@ a.jlsgbujiang {
     font-size: 18px;
     width: 100%;
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > label {
+.jlsgbujiang.material-input > label {
     position: absolute;
     left: 10px;
     top: 0.6em;
@@ -166,14 +167,14 @@ a.jlsgbujiang {
     outline: none;
     transform-origin: top left;
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > input:not(:placeholder-shown) ~ label,
-.jlsgbujiang.filter-panel > .skill-name-filter > input:focus ~ label {
+.jlsgbujiang.material-input > input:not(:placeholder-shown) ~ label,
+.jlsgbujiang.material-input > input:focus ~ label {
     transform: translateY(-0.6em) scale(0.75);
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > input:placeholder-shown ~ button {
+.jlsgbujiang.material-input > input:placeholder-shown ~ button {
     display: none;
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > button {
+.jlsgbujiang.material-input > button {
     z-index: 1;
     background: none;
     border: none;
@@ -190,7 +191,7 @@ a.jlsgbujiang {
     cursor: pointer;
     border-radius: 4px;
 }
-.jlsgbujiang.filter-panel > .skill-name-filter > button:hover {
+.jlsgbujiang.material-input > button:hover {
     background-color: rgba(30,32,34,0.1);
 }
 .jlsgbujiang.filter-panel > .color-filter > *,
@@ -687,6 +688,14 @@ a.jlsgbujiang {
     transition: all 0.3s;
     opacity: 0.8;
     pointer-events: none;
+    left: -1.8vw;
+}
+.jlsgbujiang.orb .inuseorb-hover-popup[forced] {
+    background-color: #cfcfcfa0;
+    font-size: 1.2vw;
+}
+.jlsgbujiang.orb .inuseorb-hover-popup[forced] > .color-lanes {
+    display: none;
 }
 .jlsgbujiang.orb .inuseorb-hover-popup.removing {
     transform: scale(0.5);
@@ -789,4 +798,35 @@ a.jlsgbujiang {
     height: 1.5em;
     padding-bottom: 2px;
     left: 0;
+}
+.menubg.jlsgbujiang.main > .page-content.ency-page {
+    flex-direction: column;
+    overflow: scroll;
+}
+.menubg.jlsgbujiang.main > .page-content.ency-page::before {
+    content: "";
+    margin: 3em;
+    flex: 0;
+}
+.menubg.jlsgbujiang.main > .page-content.ency-page > .material-input {
+    margin: 1em;
+    font-family: 'STXinwei','xinwei';
+    position: fixed;
+    z-index: 1;
+}
+.page-content.ency-page > .ency-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: start;
+}
+.page-content.ency-page > .ency-result > *{
+    position: relative;
+    margin: 20px 10px;
+}
+.page-content.ency-page > .ency-result > :not(.character){
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }

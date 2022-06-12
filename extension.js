@@ -57,6 +57,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let suitPageEntries = {
                         'suit': this._buildItem('装配', () => { internals.panel.currentPage = 'suit'; }),
                         'mix': this._buildItem('合成', () => { internals.panel.currentPage = 'mix'; }),
+                        'ency': this._buildItem('图鉴', () => { internals.panel.currentPage = 'ency'; }),
                     };
                     suitPageEntries[page || 'suit'].setAttribute('active', '');
                     for (let i in suitPageEntries) {
@@ -141,7 +142,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             node.classList.add('jlsgbujiang', 'filter-panel');
                             {
                                 let skillNameFilter = document.createElement('div');
-                                skillNameFilter.classList.add('menubg', 'skill-name-filter');
+                                skillNameFilter.classList.add('jlsgbujiang', 'menubg', 'material-input');
                                 let input = document.createElement('input');
                                 input.id = 'skill-name-filter-0';
                                 input.placeholder = ' ';
@@ -228,6 +229,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             internals.panel.orbList.build();
                         },
                     },
+                    /**
+                     * open filter panel
+                     */
                     filterOpen() {
                         // this.filterButton.classList.add('bluebg');
                         if (!this.filterOpenPrompt && true) { // FIXME: config for update filter on close
@@ -760,7 +764,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 suitsDisks: {
                     node: null,
                     suitIdx: 0,
-                    disk: null,
+                    // disk: null,
                     get dirty() {
                         return internals.panel.suitDisk.orbs &&
                             JSON.stringify(internals.panel.suitDisk.orbs) != JSON.stringify(internals.data.suits[this.suitIdx].orbs);
@@ -876,6 +880,12 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             let shareNode = document.createElement('div');
                             shareNode.innerText = '详细';
                             dropNode.appendChild(shareNode);
+                            shareNode.addEventListener('pointerup', e => {
+                                const event = new Event('mouseenter');
+                                for (let orb of Array.from(internals.panel.suitDisk.node.querySelectorAll('.orb'))) {
+                                    orb.dispatchEvent(event);
+                                }
+                            });
                             if (internals.data.suits.length > 1) {
                                 let deleteNode = document.createElement('div');
                                 deleteNode.innerText = '删除';
@@ -889,7 +899,6 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                                 });
                                 dropNode.appendChild(deleteNode);
                             }
-                            /** TODO: share */
                             moreNode.appendChild(dropNode);
                         }
                     },
@@ -1213,6 +1222,116 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
 
                 }
             },
+            encyPage: {
+                node: null,
+                init() {
+                    let node = document.createElement("div"); this.node = node;
+                    node.classList.add('page-content', 'ency-page');
+                    this.node = node;
+                    node.appendChild(this.input.init());
+                    node.appendChild(this.result.init());
+                    return node;
+                },
+                input: {
+                    node: null,
+                    value: '',
+                    init() {
+                        let node = document.createElement('div'); this.node = node;
+                        node.classList.add('jlsgbujiang', 'menubg', 'material-input');
+                        let input = document.createElement('input');
+                        input.id = 'ency-filter-0';
+                        input.placeholder = ' ';
+                        let label = document.createElement('label');
+                        label.htmlFor = input.id;
+                        label.innerText = '技能/武将 支持拼音';
+                        let clear = document.createElement('button');
+                        node.append(input, label, clear);
+                        input.addEventListener('blur', e => {
+                            if (e.relatedTarget === clear) return;
+                            if (this.value != input.value) {
+                                this.value = input.value;
+                                internals.panel.encyPage.update();
+                            }
+                        })
+                        clear.addEventListener('click', e => {
+                            this.value = input.value = '';
+                            internals.panel.encyPage.update();
+                        });
+                        node.addEventListener('click', e => {
+                            input.focus();
+                        });
+                        return node;
+                    },
+                },
+                result: {
+                    node: null,
+                    init() {
+                        let node = document.createElement('div'); this.node = node;
+                        node.classList.add('jlsgbujiang', 'ency-result');
+                        return node;
+                    },
+                },
+                update() {
+                    let value = this.input.value;
+                    this.result.node.innerHTML = "";
+                    if (!value.length) {
+                        return;
+                    }
+                    let characters = [];
+                    let allSkills = new Set(internals.allSkills);
+                    for (var c in lib.character) {
+                        if (lib.filter.characterDisabled(c)) {
+                            continue;
+                        }
+                        if (c.includes(value) || get.translation(c).includes(value)) {
+                            characters.push(c);
+                        }
+                    }
+                    if (characters.length > 50) {
+                        characters.length = 50;
+                    }
+                    let skills = [];
+                    for (var s of allSkills) {
+                        if (s.includes(value) || lib.translate[s].includes(value)) {
+                            skills.push(s);
+                        }
+                    }
+                    if (skills.length > 50) {
+                        skills.length = 50;
+                    }
+                    let makeSkill = (s) => {
+                        let node = document.createElement('div');
+                        { // skill name node
+                            let td = ui.create.div('.shadowed.reduce_radius.pointerdiv.tdnode');
+                            td.innerText = lib.translate[s];
+                            lib.setIntro(td, null, true);
+                            td._customintro = [lib.translate[s], lib.translate[s + '_info']];
+                            node.appendChild(td);
+                        }
+                        let req = internals.getSkillRequirement(s);
+                        node.appendChild(internals.panel.utils.makeColorLanes(req));
+                        return node;
+                    };
+                    for (let c of characters) {
+                        let avatar = ui.create.button(c, 'character');
+                        this.result.node.appendChild(avatar);
+                        for (let s of lib.character[c][3]) {
+                            if (!allSkills.has(s)) {
+                                continue;
+                            }
+                            this.result.node.appendChild(makeSkill(s));
+                        }
+                    }
+                    if (characters.length) {
+                        let lineBreak = document.createElement('div');
+                        lineBreak.style.flexBasis = '100%';
+                    }
+                    this.result.node.appendChild(lineBreak);
+                    for (let s of skills) {
+                        this.result.node.appendChild(makeSkill(s));
+                    }
+                },
+            },
             hintPanel: {
                 node: null,
                 hintMap: {},
@@ -1223,7 +1342,21 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     this.node = node;
                     node.classList.add('jlsgbujiang', 'hint-panel');
                     this.add(`部将${lib.extensionPack.部将.version}测试`);
+                    let isUpdate = (version, preVersion) => {
+                        version = version.split('.').map(n => parseInt(n));
+                        preVersion = preVersion.split('.').map(n => parseInt(n));
+                        let index =  version.findIndex((n, i) => n != preVersion[i]);
+                        return index != -1 && version[index] > preVersion[index];
+                    };
+                    // 新版本
+                    if (!internals.data.lastVersion || isUpdate(lib.extensionPack['部将'].version, internals.data.lastVersion)) {
+                        internals.data.lastVersion = lib.extensionPack['部将'].version;
+                        this.add(`更新版本 赠送了朱砂`);
+                        internals.cash += 200;
+                        internals.save();
+                    }
                     this.add(`早期版本极其不稳定！请勿传播 积极反馈`);
+
                     return node;
                 },
                 /**
@@ -1296,6 +1429,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (this.node.contains(this.mixPage.node)) {
                     return 'mix';
                 }
+                if (this.node.contains(this.encyPage.node)) {
+                    return 'ency';
+                }
                 return null;
             },
             set currentPage(targetPage) {
@@ -1305,16 +1441,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 if (this.currentPage && this[this.currentPage + 'Page'].onClose) {
                     this[this.currentPage + 'Page'].onClose();
                 }
-                switch (targetPage) {
-                    case 'suit':
-                        pageObj = this.suitPage;
-                        break;
-                    case 'mix':
-                        pageObj = this.mixPage;
-                        break;
-                    default:
-                        break;
-                }
+                pageObj = this[targetPage + 'Page'];
                 if (currentPageNode) {
                     currentPageNode.replaceWith(pageObj.init());
                 } else {
@@ -1388,9 +1515,15 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     let orbData = internals.data.orbs[orbID];
                     let popup;
                     orbNode.addEventListener('mouseenter', e => {
+                        if (orbNode.contains(popup) && !popup.classList.contains('removing')) {
+                            return;
+                        }
                         popup = document.createElement('div');
                         orbNode.appendChild(popup);
                         popup.classList.add('jlsgbujiang', 'inuseorb-hover-popup', 'removing');
+                        if (!e.isTrusted) { // invoked by share button
+                            popup.setAttribute('forced', '');
+                        }
                         requestAnimationFrame(() => {
                             popup.classList.remove('removing');
                         })
@@ -1517,7 +1650,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 this.save();
             }
             if (this.bonusReady) {
-                // alert daily bonus
+                // alert daily bonus // TODO
             }
             this.panel.init();
             document.addEventListener("backbutton", () => {
@@ -1937,14 +2070,14 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     coeff2 *= 1.5;
                 }
                 {
-                    if (window.gameplayAction <= 20) {
-                        coeff1 *= window.gameplayAction / 20;
-                        coeff2 *= window.gameplayAction / 20;
+                    if (window.gameplayAction <= 35) {
+                        coeff1 *= window.gameplayAction / 35;
+                        coeff2 *= window.gameplayAction / 35;
                     } else {
-                        coeff1 *= Math.sqrt(window.gameplayAction / 20);
-                        coeff2 *= Math.sqrt(window.gameplayAction / 20);
+                        coeff1 *= Math.sqrt(window.gameplayAction / 35);
+                        coeff2 *= Math.sqrt(window.gameplayAction / 35);
                     }
-                    for (let i = 7; i <= window.gameplayAction; i *= 2) {
+                    for (let i = 10; i <= window.gameplayAction; i *= 2) {
                         fullRandCnt += this.utils.distributionGet([0.3, 0.4, 0.3]);
                     }
                 }
@@ -2029,6 +2162,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                 }
                 console.log(winDialog);
                 winDialog = winDialog.parentElement;
+                if (winDialog.querySelector('.jlsgbujiang.dialog')) {
+                    console.warn('jlbujiang dialog already attached!');
+                    return;
+                }
                 winDialog.style.transform += 'translateX(-1em)';
                 let node = document.createElement('div');
                 node.classList.add('jlsgbujiang', 'dialog', 'withbg');
@@ -2060,10 +2197,16 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     node.addEventListener('click', e => {
                         text.style.opacity = 0;
                         node.style.minHeight = winDialog.offsetHeight + 'px';
+                        node.style.top = '-10px';
                         // node.style.maxHeight = winDialog.offsetHeight +'px';
                         node.style.cursor = '';
                         node.addEventListener('transitionend', e => {
-                            node.style.minWidth = '280px';
+                            Object.assign(node.style, {
+                                minWidth: '280px',
+                                maxHeight: 'calc(100% + 20px)',
+                                // top: '-10px',
+                            })
+                            // node.style.minWidth = '280px';
                             winDialog.style.transition = 'all 0.5s cubic-bezier(0, 0, 0.2, 1) 0s';
                             winDialog.style.transform =
                                 winDialog.style.transform.replace(/translateX\(-?\d+\w*\)/, 'translateX(-140px)');
@@ -2180,9 +2323,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                     orbs: {},
                     brokenOrbs: {},
                     newOrbs: [],
-                    version: 1,
+                    version: 1, // version of the data
                     states: {
                         needInitialGive: true,
+                        lastVersion: null, // previous extension version
                     }
                 }
                 this.save();
@@ -2533,8 +2677,10 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
             skill: {
                 skill: {
                     jlsg_type1: {
+                        charlotte:true,
                     },
                     jlsg_type2: {
+                        charlotte:true,
                         mod: {
                             maxHandcard: function (player, num) {
                                 return num + 1;
@@ -2542,6 +2688,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         },
                     },
                     jlsg_type3: {
+                        charlotte:true,
                         trigger: { global: 'gameDrawAfter', player: 'enterGame' },
                         // silent: true,
                         forced: true,
@@ -2635,7 +2782,7 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                         },
                         silent: true,
                         filter(event, player) {
-                            return player === game.me && !_status.auto;
+                            return !_status.auto; // player === game.me
                         },
                         content() {
                             if (trigger.name == 'chooseBool') {
@@ -2646,7 +2793,11 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             if (!window.gameplayAction) {
                                 window.gameplayAction = 0;
                             }
-                            ++window.gameplayAction;
+                            if (player === game.me) {
+                                window.gameplayAction += 0.7;
+                            } else {
+                                window.gameplayAction += 0.05;
+                            }
                         },
                     },
                     _BJ_hyperSpeed: {
@@ -2659,7 +2810,9 @@ game.import('extension', function (lib, game, ui, get, ai, _status) {
                             return player == game.me && game.players.length > 1 && game.getExtensionConfig('部将', 'hyperSpeed');
                         },
                         content() {
-                            ui.hyperSpeed = ui.create.control('高速', window._bujiang.hyperSpeed);
+                            if (!ui.hyperSpeed) {
+                                ui.hyperSpeed = ui.create.control('高速', window._bujiang.hyperSpeed);
+                            }
                         },
                     },
                 },
